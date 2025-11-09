@@ -1,0 +1,279 @@
+"use client"
+
+import { useState } from "react"
+import DashboardPageLayout from "@/components/dashboard/layout"
+import { Calendar, ThumbsUp, ThumbsDown, MessageSquare, Users, MapPin } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { useAuth } from "@/lib/auth-context"
+import { useRouter } from "next/navigation"
+
+type Event = {
+  id: string
+  title: string
+  description: string
+  date: string
+  location: string
+  organizer: string
+  image: string
+  likes: number
+  dislikes: number
+  comments: Comment[]
+  userVote?: "like" | "dislike"
+}
+
+type Comment = {
+  id: string
+  author: string
+  avatar: string
+  content: string
+  timestamp: string
+}
+
+const initialEvents: Event[] = [
+  {
+    id: "1",
+    title: "Tournoi de Ping-Pong",
+    description: "Tournoi inter-filières avec prix pour les gagnants. Inscription gratuite!",
+    date: "2025-02-15",
+    location: "Salle de sport ISTIC, Ben Arous",
+    organizer: "Aymen Ksouri",
+    image: "/events/ping-pong-tournament.jpg",
+    likes: 45,
+    dislikes: 3,
+    comments: [
+      {
+        id: "c1",
+        author: "Mohamed Aziz Mehri",
+        avatar: "/avatars/aziz-mehri.png",
+        content: "Super idée! J'espère que beaucoup vont participer.",
+        timestamp: "Il y a 2 heures",
+      },
+    ],
+  },
+  {
+    id: "2",
+    title: "Podcast: Tech Talk",
+    description: "Discussion sur l'IA et son impact sur notre futur. Invités spéciaux!",
+    date: "2025-02-20",
+    location: "Studio Radio Istic, Ben Arous",
+    organizer: "Dhia Eddine Ktiti",
+    image: "/events/podcast-live-recording.jpg",
+    likes: 38,
+    dislikes: 1,
+    comments: [],
+  },
+  {
+    id: "3",
+    title: "Voyage à Ain Draham",
+    description: "Week-end découverte dans le nord de la Tunisie. Places limitées!",
+    date: "2025-03-05",
+    location: "Ain Draham, Tunisie",
+    organizer: "Aymen Ksouri",
+    image: "/events/ain-draham-trip.jpg",
+    likes: 67,
+    dislikes: 8,
+    comments: [
+      {
+        id: "c2",
+        author: "Eya Ssekk",
+        avatar: "/avatars/eya-ssekk.png",
+        content: "Combien ça coûte? Je suis intéressée!",
+        timestamp: "Il y a 5 heures",
+      },
+    ],
+  },
+]
+
+export default function ClubLifePage() {
+  const { user } = useAuth()
+  const router = useRouter()
+  const [events, setEvents] = useState<Event[]>(initialEvents)
+  const [newComments, setNewComments] = useState<{ [key: string]: string }>({})
+
+  if (!user) {
+    router.push("/login")
+    return null
+  }
+
+  const handleVote = (eventId: string, voteType: "like" | "dislike") => {
+    setEvents((prevEvents) =>
+      prevEvents.map((event) => {
+        if (event.id !== eventId) return event
+
+        const currentVote = event.userVote
+        let newLikes = event.likes
+        let newDislikes = event.dislikes
+        let newVote: "like" | "dislike" | undefined = voteType
+
+        // Remove previous vote
+        if (currentVote === "like") newLikes--
+        if (currentVote === "dislike") newDislikes--
+
+        // Add new vote or remove if same
+        if (currentVote === voteType) {
+          newVote = undefined
+        } else {
+          if (voteType === "like") newLikes++
+          if (voteType === "dislike") newDislikes++
+        }
+
+        return {
+          ...event,
+          likes: newLikes,
+          dislikes: newDislikes,
+          userVote: newVote,
+        }
+      }),
+    )
+  }
+
+  const handleAddComment = (eventId: string) => {
+    const commentText = newComments[eventId]?.trim()
+    if (!commentText) return
+
+    const newComment: Comment = {
+      id: `c-${Date.now()}`,
+      author: user.name,
+      avatar: user.avatar || "/placeholder.svg",
+      content: commentText,
+      timestamp: "À l'instant",
+    }
+
+    setEvents((prevEvents) =>
+      prevEvents.map((event) =>
+        event.id === eventId ? { ...event, comments: [...event.comments, newComment] } : event,
+      ),
+    )
+
+    setNewComments((prev) => ({ ...prev, [eventId]: "" }))
+  }
+
+  return (
+    <DashboardPageLayout
+      header={{
+        title: "Vie du Club",
+        description: "Événements, sondages et feedback de la communauté",
+        icon: Users,
+      }}
+    >
+      <div className="space-y-6">
+        {events.map((event) => (
+          <div
+            key={event.id}
+            className="bg-card border border-border rounded-xl overflow-hidden hover:border-electric-blue/50 transition-all"
+          >
+            {event.image && (
+              <div className="relative h-48 overflow-hidden">
+                <img src={event.image || "/placeholder.svg"} alt={event.title} className="w-full h-full object-cover" />
+              </div>
+            )}
+
+            <div className="p-6">
+              {/* Event Header */}
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex-1">
+                  <h3 className="text-xl font-display font-bold mb-2">{event.title}</h3>
+                  <p className="text-muted-foreground mb-3">{event.description}</p>
+                  <div className="flex flex-wrap gap-3 text-sm">
+                    <div className="flex items-center gap-2 text-electric-blue">
+                      <Calendar className="h-4 w-4" />
+                      <span>
+                        {new Date(event.date).toLocaleDateString("fr-TN", {
+                          weekday: "long",
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                          timeZone: "Africa/Tunis",
+                        })}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-neon-lime" />
+                      <Badge variant="outline" className="border-neon-lime/30 text-neon-lime">
+                        {event.location}
+                      </Badge>
+                    </div>
+                    <span className="text-muted-foreground">Organisé par {event.organizer}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Voting Section */}
+              <div className="flex items-center gap-4 mb-4 pb-4 border-b border-border">
+                <Button
+                  variant={event.userVote === "like" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handleVote(event.id, "like")}
+                  className={event.userVote === "like" ? "bg-neon-lime text-black hover:bg-neon-lime/90" : ""}
+                >
+                  <ThumbsUp className="h-4 w-4 mr-2" />
+                  {event.likes}
+                </Button>
+                <Button
+                  variant={event.userVote === "dislike" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handleVote(event.id, "dislike")}
+                  className={
+                    event.userVote === "dislike" ? "bg-signal-orange text-white hover:bg-signal-orange/90" : ""
+                  }
+                >
+                  <ThumbsDown className="h-4 w-4 mr-2" />
+                  {event.dislikes}
+                </Button>
+                <div className="flex items-center gap-2 text-muted-foreground ml-auto">
+                  <MessageSquare className="h-4 w-4" />
+                  <span>{event.comments.length} commentaires</span>
+                </div>
+              </div>
+
+              {/* Comments Section */}
+              <div className="space-y-4">
+                {event.comments.map((comment) => (
+                  <div key={comment.id} className="flex gap-3">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={comment.avatar || "/placeholder.svg"} alt={comment.author} />
+                      <AvatarFallback>{comment.author[0]}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <div className="bg-muted rounded-lg p-3">
+                        <p className="font-semibold text-sm mb-1">{comment.author}</p>
+                        <p className="text-sm">{comment.content}</p>
+                      </div>
+                      <span className="text-xs text-muted-foreground ml-3 mt-1">{comment.timestamp}</span>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Add Comment */}
+                <div className="flex gap-3 mt-4">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.name} />
+                    <AvatarFallback>{user.name[0]}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 flex gap-2">
+                    <Textarea
+                      placeholder="Ajouter un commentaire..."
+                      value={newComments[event.id] || ""}
+                      onChange={(e) => setNewComments((prev) => ({ ...prev, [event.id]: e.target.value }))}
+                      className="min-h-[60px]"
+                    />
+                    <Button
+                      onClick={() => handleAddComment(event.id)}
+                      disabled={!newComments[event.id]?.trim()}
+                      className="bg-electric-blue hover:bg-electric-blue/90"
+                    >
+                      Publier
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </DashboardPageLayout>
+  )
+}
