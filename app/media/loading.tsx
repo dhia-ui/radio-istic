@@ -1,3 +1,5 @@
+import { GridLoadingSkeleton } from "@/components/ui/loading-skeleton"
+
 export default function Loading() {
-  return null
+  return <GridLoadingSkeleton items={8} />
 }

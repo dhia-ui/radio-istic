@@ -1,7 +1,8 @@
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import RadioIsticLogo from "@/components/radio-istic-logo"
-import { Bell, MapPin } from "lucide-react"
+import { Bell, MapPin, Sun, Moon } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useTheme } from "next-themes"
 import type { MockData } from "@/types/dashboard"
 
 interface MobileHeaderProps {
@@ -14,9 +15,11 @@ export function MobileHeader({ mockData }: MobileHeaderProps) {
     hour: "2-digit",
     minute: "2-digit",
   })
+  const { theme, setTheme } = useTheme()
+  const toggleTheme = () => setTheme(theme === "dark" ? "light" : "dark")
 
   return (
-    <header className="lg:hidden sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="lg:hidden sticky top-0 z-50 w-full border-b border-border glass-panel">
       <div className="flex h-header-mobile items-center justify-between px-4">
         <div className="flex items-center gap-3">
           <SidebarTrigger className="-ml-1" />
@@ -28,6 +31,9 @@ export function MobileHeader({ mockData }: MobileHeaderProps) {
             <span>Ben Arous, TN</span>
             <span className="ml-2">{currentTime}</span>
           </div>
+          <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label="Basculer thème" className="relative">
+            {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          </Button>
           <Button variant="ghost" size="icon" className="relative">
             <Bell className="h-5 w-5" />
             {mockData.notifications.length > 0 && (

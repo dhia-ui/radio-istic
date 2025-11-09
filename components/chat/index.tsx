@@ -1,12 +1,14 @@
 "use client";
 
-import React from "react";
-import { motion, AnimatePresence } from "motion/react";
+import React, { useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useChatState } from "./use-chat-state";
 import PlusIcon from "../icons/plus";
 import ChatPreview from "./chat-preview";
 import ChatConversation from "./chat-conversation";
+import { useWebSocket } from "@/lib/websocket-context";
+import { useToast } from "@/hooks/use-toast";
 import { ChatHeader } from "./chat-header";
 
 const CONTENT_HEIGHT = 420; // Height of expandable content
@@ -24,7 +26,31 @@ export default function Chat() {
     toggleExpanded,
   } = useChatState();
 
+  const { sendMessage, join, leave, markAsRead } = useWebSocket();
+  const { toast } = useToast();
+
   const isExpanded = chatState.state !== "collapsed";
+
+  // Join/Leave conversation rooms
+  const prevConvId = useRef<string | null>(null);
+  useEffect(() => {
+    const currentId = chatState.state === "conversation" ? activeConversation?.id ?? null : null;
+    if (prevConvId.current && prevConvId.current !== currentId) {
+      leave(prevConvId.current);
+    }
+    if (currentId) {
+      join(currentId);
+      // Mark as read on open
+      markAsRead(currentId);
+    }
+    prevConvId.current = currentId;
+    return () => {
+      if (prevConvId.current) {
+        leave(prevConvId.current);
+        prevConvId.current = null;
+      }
+    };
+  }, [chatState.state, activeConversation?.id, join, leave, markAsRead]);
 
   return (
     <motion.div
@@ -39,6 +65,15 @@ export default function Chat() {
         onClick={toggleExpanded}
         showBackButton={chatState.state === "conversation"}
         onBackClick={goBack}
+        aria-label={isExpanded ? "Réduire le chat" : "Ouvrir le chat"}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e: React.KeyboardEvent) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            toggleExpanded();
+          }
+        }}
       />
 
       {/* Expandable Content - Below the header */}
@@ -86,7 +121,24 @@ export default function Chat() {
                 activeConversation={activeConversation}
                 newMessage={newMessage}
                 setNewMessage={setNewMessage}
-                onSendMessage={handleSendMessage}
+                onSendMessage={() => {
+                  const result = handleSendMessage();
+                  if (!result) return;
+                  const { message, conversationId } = result;
+                  try {
+                    sendMessage(conversationId, message);
+                    toast({
+                      title: "Message envoyé",
+                      description: "Votre message a été transmis.",
+                    });
+                  } catch (e) {
+                    toast({
+                      variant: "destructive",
+                      title: "Échec de l'envoi",
+                      description: "Le message n'a pas pu être envoyé.",
+                    });
+                  }
+                }}
               />
             )}
           </AnimatePresence>

@@ -1,4 +1,6 @@
-import { motion } from "motion/react";
+"use client";
+
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import type { ChatConversation } from "@/types/chat";
 import { mockChatData } from "@/data/chat-mock";

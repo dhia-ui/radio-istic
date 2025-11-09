@@ -19,6 +19,16 @@ export default function SettingsPage() {
   const [isAvatarPickerOpen, setIsAvatarPickerOpen] = useState(false)
   const [name, setName] = useState(user?.name || "")
   const [email, setEmail] = useState(user?.email || "")
+  // Notifications state (local optimistic)
+  const [notifEmail, setNotifEmail] = useState(true)
+  const [notifMessages, setNotifMessages] = useState(true)
+  const [notifEvents, setNotifEvents] = useState(true)
+
+  // Password change state
+  const [currentPassword, setCurrentPassword] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [isSavingPassword, setIsSavingPassword] = useState(false)
 
   const handleAvatarChange = (avatarUrl: string) => {
     if (updateUser) {
@@ -37,6 +47,78 @@ export default function SettingsPage() {
         title: "Profil mis à jour",
         description: "Vos informations ont été sauvegardées avec succès.",
       })
+    }
+  }
+
+  const handleToggle = (key: "email" | "messages" | "events") => {
+    if (key === "email") {
+      setNotifEmail((prev) => {
+        const next = !prev
+        toast({
+          title: next ? "Notifications email activées" : "Notifications email désactivées",
+          description: next
+            ? "Vous recevrez des emails pour les événements importants."
+            : "Vous ne recevrez plus d'emails.",
+        })
+        return next
+      })
+    }
+    if (key === "messages") {
+      setNotifMessages((prev) => {
+        const next = !prev
+        toast({
+          title: next ? "Notifications messages activées" : "Notifications messages désactivées",
+          description: next
+            ? "Vous serez notifié des nouveaux messages."
+            : "Vous ne serez plus notifié des messages.",
+        })
+        return next
+      })
+    }
+    if (key === "events") {
+      setNotifEvents((prev) => {
+        const next = !prev
+        toast({
+          title: next ? "Rappels d'événements activés" : "Rappels d'événements désactivés",
+          description: next
+            ? "Vous recevrez des rappels pour les événements à venir."
+            : "Vous ne recevrez plus de rappels.",
+        })
+        return next
+      })
+    }
+  }
+
+  const handleChangePassword = async () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      toast({ variant: "destructive", title: "Champs manquants", description: "Veuillez remplir tous les champs." })
+      return
+    }
+    if (newPassword.length < 6) {
+      toast({
+        variant: "destructive",
+        title: "Mot de passe trop court",
+        description: "Le nouveau mot de passe doit contenir au moins 6 caractères.",
+      })
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      toast({ variant: "destructive", title: "Mots de passe différents", description: "Les mots de passe ne correspondent pas." })
+      return
+    }
+
+    setIsSavingPassword(true)
+    try {
+      // Simuler un appel API
+      await new Promise((res) => setTimeout(res, 600))
+      setCurrentPassword("")
+      setNewPassword("")
+      setConfirmPassword("")
+      toast({ title: "Mot de passe changé", description: "Votre mot de passe a été mis à jour." })
+    } catch (e) {
+      toast({ variant: "destructive", title: "Erreur", description: "Impossible de changer le mot de passe." })
+    } finally {
+      setIsSavingPassword(false)
     }
   }
 
@@ -145,8 +227,8 @@ export default function SettingsPage() {
                   <p className="font-medium">Notifications par email</p>
                   <p className="text-sm text-muted-foreground">Recevoir des emails pour les événements importants</p>
                 </div>
-                <Button variant="outline" size="sm">
-                  Activé
+                <Button variant={notifEmail ? "outline" : "default"} size="sm" onClick={() => handleToggle("email")}>
+                  {notifEmail ? "Activé" : "Désactivé"}
                 </Button>
               </div>
               <div className="flex items-center justify-between">
@@ -154,8 +236,8 @@ export default function SettingsPage() {
                   <p className="font-medium">Nouveaux messages</p>
                   <p className="text-sm text-muted-foreground">Notifications pour les nouveaux messages</p>
                 </div>
-                <Button variant="outline" size="sm">
-                  Activé
+                <Button variant={notifMessages ? "outline" : "default"} size="sm" onClick={() => handleToggle("messages")}>
+                  {notifMessages ? "Activé" : "Désactivé"}
                 </Button>
               </div>
               <div className="flex items-center justify-between">
@@ -163,8 +245,8 @@ export default function SettingsPage() {
                   <p className="font-medium">Événements</p>
                   <p className="text-sm text-muted-foreground">Rappels pour les événements à venir</p>
                 </div>
-                <Button variant="outline" size="sm">
-                  Activé
+                <Button variant={notifEvents ? "outline" : "default"} size="sm" onClick={() => handleToggle("events")}>
+                  {notifEvents ? "Activé" : "Désactivé"}
                 </Button>
               </div>
             </CardContent>
@@ -182,17 +264,19 @@ export default function SettingsPage() {
             <CardContent className="space-y-4">
               <div className="grid gap-2">
                 <Label htmlFor="current-password">Mot de passe actuel</Label>
-                <Input id="current-password" type="password" />
+                <Input id="current-password" type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="new-password">Nouveau mot de passe</Label>
-                <Input id="new-password" type="password" />
+                <Input id="new-password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="confirm-password">Confirmer le mot de passe</Label>
-                <Input id="confirm-password" type="password" />
+                <Input id="confirm-password" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
               </div>
-              <Button className="w-full">Changer le mot de passe</Button>
+              <Button className="w-full" onClick={handleChangePassword} disabled={isSavingPassword}>
+                {isSavingPassword ? "Changement..." : "Changer le mot de passe"}
+              </Button>
             </CardContent>
           </Card>
         </div>

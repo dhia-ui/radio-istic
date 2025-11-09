@@ -123,12 +123,16 @@ export function DashboardSidebar({ className, ...props }: React.ComponentProps<t
                     >
                       {item.locked ? (
                         <div className="flex items-center gap-3 w-full">
-                          <item.icon className="size-5" />
+                          <item.icon className="size-5" aria-hidden="true" />
                           <span>{item.title}</span>
                         </div>
                       ) : (
-                        <a href={item.url}>
-                          <item.icon className="size-5" />
+                        <a 
+                          href={item.url}
+                          aria-label={`Navigate to ${item.title}`}
+                          aria-current={item.isActive ? "page" : undefined}
+                        >
+                          <item.icon className="size-5" aria-hidden="true" />
                           <span>{item.title}</span>
                         </a>
                       )}
@@ -156,11 +160,14 @@ export function DashboardSidebar({ className, ...props }: React.ComponentProps<t
             <SidebarMenu>
               <SidebarMenuItem>
                 <Popover>
-                  <PopoverTrigger className="flex gap-0.5 w-full group cursor-pointer">
+                  <PopoverTrigger 
+                    className="flex gap-0.5 w-full group cursor-pointer"
+                    aria-label="User menu"
+                  >
                     <div className="shrink-0 flex size-14 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground overflow-clip">
                       <Image
                         src={data.user.avatar || "/placeholder.svg"}
-                        alt={data.user.name}
+                        alt={`${data.user.name} avatar`}
                         width={120}
                         height={120}
                       />
@@ -176,13 +183,21 @@ export function DashboardSidebar({ className, ...props }: React.ComponentProps<t
                     </div>
                   </PopoverTrigger>
                   <PopoverContent className="w-56 p-0" side="bottom" align="end" sideOffset={4}>
-                    <div className="flex flex-col">
-                      <button className="flex items-center px-4 py-2 text-sm hover:bg-accent">
-                        <MonkeyIcon className="mr-2 h-4 w-4" />
+                    <div className="flex flex-col" role="menu" aria-label="User menu">
+                      <button 
+                        className="flex items-center px-4 py-2 text-sm hover:bg-accent"
+                        role="menuitem"
+                        aria-label="Go to account settings"
+                      >
+                        <MonkeyIcon className="mr-2 h-4 w-4" aria-hidden="true" />
                         Account
                       </button>
-                      <button className="flex items-center px-4 py-2 text-sm hover:bg-accent">
-                        <GearIcon className="mr-2 h-4 w-4" />
+                      <button 
+                        className="flex items-center px-4 py-2 text-sm hover:bg-accent"
+                        role="menuitem"
+                        aria-label="Go to settings"
+                      >
+                        <GearIcon className="mr-2 h-4 w-4" aria-hidden="true" />
                         Settings
                       </button>
                     </div>

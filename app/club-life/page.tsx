@@ -137,7 +137,7 @@ export default function ClubLifePage() {
     const newComment: Comment = {
       id: `c-${Date.now()}`,
       author: user.name,
-      avatar: user.avatar || "/placeholder.svg",
+      avatar: user.photo || "/placeholder.svg",
       content: commentText,
       timestamp: "À l'instant",
     }
@@ -250,7 +250,7 @@ export default function ClubLifePage() {
                 {/* Add Comment */}
                 <div className="flex gap-3 mt-4">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.name} />
+                    <AvatarImage src={user.photo || "/placeholder.svg"} alt={user.name} />
                     <AvatarFallback>{user.name[0]}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 flex gap-2">

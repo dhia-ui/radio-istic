@@ -13,6 +13,10 @@ type WebSocketContextType = {
   deleteMessage: (conversationId: string, messageId: string) => void
   addReaction: (conversationId: string, messageId: string, emoji: string) => void
   markAsRead: (conversationId: string) => void
+  typing: (conversationId: string, isTyping: boolean) => void
+  typingUsers: Record<string, boolean>
+  join: (conversationId: string) => void
+  leave: (conversationId: string) => void
 }
 
 const WebSocketContext = createContext<WebSocketContextType | undefined>(undefined)
@@ -30,6 +34,9 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     markAsRead: socketMarkAsRead,
     messages,
     typingUsers,
+    typing,
+    joinConversation,
+    leaveConversation,
   } = useSocket(user?.id || "")
 
   // Handle incoming messages from Socket.io
@@ -164,6 +171,10 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
         deleteMessage,
         addReaction,
         markAsRead,
+        typing,
+        typingUsers,
+        join: joinConversation,
+        leave: leaveConversation,
       }}
     >
       {children}

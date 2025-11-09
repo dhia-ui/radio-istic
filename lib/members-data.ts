@@ -1,5 +1,6 @@
 export interface Member {
-  isOnline: boolean | undefined
+  // Whether the member is currently online (optional, derive from status when needed)
+  isOnline?: boolean
   id: string
   name: string
   firstName: string

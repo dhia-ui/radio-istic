@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { motion, AnimatePresence } from "motion/react"
+import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
@@ -18,6 +18,10 @@ interface ChatHeaderProps {
   onBackClick?: () => void
   variant?: "desktop" | "mobile"
   className?: string
+  "aria-label"?: string
+  role?: string
+  tabIndex?: number
+  onKeyDown?: (e: React.KeyboardEvent) => void
 }
 
 export function ChatHeader({
@@ -26,6 +30,10 @@ export function ChatHeader({
   onBackClick,
   variant = "desktop",
   className,
+  "aria-label": ariaLabel,
+  role,
+  tabIndex,
+  onKeyDown,
 }: ChatHeaderProps) {
   const { chatState, totalUnreadCount, activeConversation, goBack, toggleExpanded } = useChatState()
 
@@ -61,6 +69,10 @@ export function ChatHeader({
         className,
       )}
       onClick={handleClick}
+      aria-label={ariaLabel}
+      role={role}
+      tabIndex={tabIndex}
+      onKeyDown={onKeyDown}
     >
       <AnimatePresence mode="popLayout">
         {(showBackButton || chatState.state === "conversation") && (

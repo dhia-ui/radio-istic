@@ -1,82 +1,14 @@
+"use client"
 import DashboardPageLayout from "@/components/dashboard/layout"
 import { Calendar, MapPin, Users, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import React, { useMemo, useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { Textarea } from "@/components/ui/textarea";
+import { useJson } from "@/lib/use-swr-json";
 
-const upcomingEvents = [
-  {
-    id: "1",
-    title: "Tournoi de Ping-Pong",
-    date: "2025-02-15",
-    time: "14:00",
-    location: "Salle de sport ISTIC, Ben Arous",
-    category: "Sport",
-    participants: 24,
-    maxParticipants: 32,
-    image: "/events/ping-pong-tournament.jpg",
-    description: "Tournoi de ping-pong ouvert à tous les niveaux. Inscriptions limitées!",
-  },
-  {
-    id: "2",
-    title: "Podcast Live: Tech & Innovation",
-    date: "2025-02-20",
-    time: "16:00",
-    location: "Studio Radio Istic, ISTIC Ben Arous",
-    category: "Podcast",
-    participants: 45,
-    maxParticipants: 50,
-    image: "/events/podcast-live-recording.jpg",
-    description: "Enregistrement en direct avec des invités du monde tech tunisien.",
-  },
-  {
-    id: "3",
-    title: "Tournoi de Football",
-    date: "2025-02-25",
-    time: "10:00",
-    location: "Terrain ISTIC, Ben Arous",
-    category: "Sport",
-    participants: 64,
-    maxParticipants: 80,
-    image: "/events/football-tournament.jpg",
-    description: "Grand tournoi de football inter-filières. Formez vos équipes!",
-  },
-  {
-    id: "4",
-    title: "Soirée Cinéma",
-    date: "2025-03-01",
-    time: "19:00",
-    location: "Amphithéâtre ISTIC, Ben Arous",
-    category: "Soirée",
-    participants: 120,
-    maxParticipants: 150,
-    image: "/events/cinema-night.jpg",
-    description: "Projection de film suivie d'un débat. Entrée gratuite pour les membres.",
-  },
-  {
-    id: "5",
-    title: "Voyage à Ain Draham",
-    date: "2025-03-10",
-    time: "07:00",
-    location: "Départ ISTIC Ben Arous → Ain Draham",
-    category: "Voyage",
-    participants: 35,
-    maxParticipants: 40,
-    image: "/events/ain-draham-trip.jpg",
-    description: "Week-end découverte à Ain Draham. Transport et hébergement inclus.",
-  },
-  {
-    id: "6",
-    title: "Matchy Matchy",
-    date: "2025-03-15",
-    time: "15:00",
-    location: "Cafétéria ISTIC, Ben Arous",
-    category: "Social",
-    participants: 28,
-    maxParticipants: 30,
-    image: "/events/matchy-matchy.jpg",
-    description: "Rencontres amicales entre étudiants. Inscriptions anonymes.",
-  },
-]
+import { upcomingEvents } from "@/data/events";
 
 const categoryColors: Record<string, string> = {
   Sport: "bg-neon-lime/20 text-neon-lime border-neon-lime/30",
@@ -87,6 +19,64 @@ const categoryColors: Record<string, string> = {
 }
 
 export default function EventsPage() {
+  const { toast } = useToast();
+  // Example SWR usage for future server-backed events list
+  const { data: eventsData } = useJson<{ events?: typeof upcomingEvents }>(null);
+  const eventsList = useMemo(() => eventsData?.events ?? upcomingEvents, [eventsData]);
+  const [rsvpState, setRsvpState] = useState<Record<string, { attending: boolean; count: number }>>({});
+  const [voteState, setVoteState] = useState<Record<string, { upvoted: boolean; total: number }>>({});
+  const [commentDraft, setCommentDraft] = useState<Record<string, string>>({});
+  const [comments, setComments] = useState<Record<string, { id: string; userId: string; text: string; createdAt: string }[]>>({});
+
+  async function api(action: string, eventId: string, extra?: any) {
+    const res = await fetch("/api/events", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, eventId, userId: "joyboy", ...extra }),
+    });
+    if (!res.ok) throw new Error("Action échouée");
+    return res.json();
+  }
+
+  async function toggleRsvp(eventId: string) {
+    try {
+      const data = await api("rsvp", eventId);
+      setRsvpState((s) => ({ ...s, [eventId]: { attending: data.attending, count: data.attendees } }));
+      toast({ title: data.attending ? "Inscription confirmée" : "Inscription annulée" });
+    } catch {
+      toast({ variant: "destructive", title: "Impossible de modifier l'inscription" });
+    }
+  }
+
+  async function toggleVote(eventId: string) {
+    try {
+      const data = await api("vote", eventId);
+      setVoteState((s) => ({ ...s, [eventId]: { upvoted: data.upvoted, total: data.total } }));
+    } catch {
+      toast({ variant: "destructive", title: "Vote échoué" });
+    }
+  }
+
+  async function addReminder(eventId: string, when: string) {
+    try {
+      await api("remind", eventId, { when });
+      toast({ title: "Rappel programmé", description: `Notification ${when} avant l'événement.` });
+    } catch {
+      toast({ variant: "destructive", title: "Rappel non enregistré" });
+    }
+  }
+
+  async function submitComment(eventId: string) {
+    const text = commentDraft[eventId]?.trim();
+    if (!text) return;
+    try {
+      const data = await api("comment", eventId, { text });
+      setComments((c) => ({ ...c, [eventId]: [...(c[eventId] || []), data.comment] }));
+      setCommentDraft((d) => ({ ...d, [eventId]: "" }));
+    } catch {
+      toast({ variant: "destructive", title: "Commentaire échoué" });
+    }
+  }
   return (
     <DashboardPageLayout
       header={{
@@ -101,15 +91,18 @@ export default function EventsPage() {
         <p className="text-muted-foreground mb-4">
           Tournois sportifs, podcasts, soirées, voyages et bien plus encore. Rejoignez-nous!
         </p>
-        <Button className="bg-electric-blue hover:bg-electric-blue/90 neon-glow-blue">
-          <Calendar className="h-4 w-4 mr-2" />
+        <Button 
+          className="bg-electric-blue hover:bg-electric-blue/90 neon-glow-blue"
+          aria-label="View full event calendar"
+        >
+          <Calendar className="h-4 w-4 mr-2" aria-hidden="true" />
           Voir le calendrier complet
         </Button>
       </div>
 
       {/* Events Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {upcomingEvents.map((event) => (
+        {eventsList.map((event) => (
           <div
             key={event.id}
             className="bg-card border border-border rounded-xl overflow-hidden hover:border-electric-blue/50 transition-all group card-3d-lift"
@@ -152,12 +145,76 @@ export default function EventsPage() {
                 <div className="flex items-center gap-2 text-sm">
                   <Users className="h-4 w-4 text-electric-blue" />
                   <span>
-                    {event.participants}/{event.maxParticipants} participants
+                    {(rsvpState[event.id]?.count ?? event.participants)}/{event.maxParticipants} participants
                   </span>
                 </div>
               </div>
-
-              <Button className="w-full bg-electric-blue hover:bg-electric-blue/90">S'inscrire</Button>
+              <div className="flex flex-col gap-2">
+                <Button
+                  className="w-full bg-electric-blue hover:bg-electric-blue/90"
+                  variant={rsvpState[event.id]?.attending ? "secondary" : "default"}
+                  onClick={() => toggleRsvp(event.id)}
+                  aria-label={rsvpState[event.id]?.attending ? `Cancel registration for ${event.title}` : `Register for ${event.title}`}
+                >
+                  {rsvpState[event.id]?.attending ? "Annuler l'inscription" : "S'inscrire"}
+                </Button>
+                <div className="flex gap-2 text-xs">
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={() => addReminder(event.id, "1h")}
+                    aria-label={`Set 1 hour reminder for ${event.title}`}
+                  >
+                    Rappel 1h
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={() => addReminder(event.id, "1d")}
+                    aria-label={`Set 1 day reminder for ${event.title}`}
+                  >
+                    Rappel 1j
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant={voteState[event.id]?.upvoted ? "default" : "outline"} 
+                    onClick={() => toggleVote(event.id)}
+                    aria-label={`${voteState[event.id]?.upvoted ? 'Remove vote' : 'Vote'} for ${event.title}. Current votes: ${voteState[event.id]?.total ?? 0}`}
+                  >
+                    👍 {voteState[event.id]?.total ?? 0}
+                  </Button>
+                </div>
+                <div className="mt-2 space-y-2">
+                  <Textarea
+                    placeholder="Commenter..."
+                    value={commentDraft[event.id] || ""}
+                    onChange={(e) => setCommentDraft((d) => ({ ...d, [event.id]: e.target.value }))}
+                    className="h-16 text-xs"
+                    aria-label={`Write a comment for ${event.title}`}
+                  />
+                  <Button 
+                    size="sm" 
+                    variant="secondary" 
+                    onClick={() => submitComment(event.id)} 
+                    disabled={!commentDraft[event.id]?.trim()}
+                    aria-label={`Submit comment for ${event.title}`}
+                  >
+                    Envoyer
+                  </Button>
+                  <div 
+                    className="space-y-1 max-h-32 overflow-y-auto text-xs"
+                    role="list"
+                    aria-label={`Comments for ${event.title}`}
+                  >
+                    {(comments[event.id] || []).map((c) => (
+                      <div key={c.id} className="border border-border/40 rounded p-1" role="listitem">
+                        <span className="font-medium">{c.userId}</span> <span className="opacity-70">{new Date(c.createdAt).toLocaleTimeString("fr-TN", { timeZone: "Africa/Tunis", hour: "2-digit", minute: "2-digit" })}</span>
+                        <div>{c.text}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         ))}

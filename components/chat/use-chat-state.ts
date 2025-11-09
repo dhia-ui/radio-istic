@@ -12,12 +12,14 @@ interface ChatStore {
   chatState: ChatComponentState;
   conversations: ChatConversation[];
   newMessage: string;
+  replyingToId?: string;
 
   // Actions
   setChatState: (state: ChatComponentState) => void;
   setConversations: (conversations: ChatConversation[]) => void;
   setNewMessage: (message: string) => void;
-  handleSendMessage: () => void;
+  setReplyingTo: (messageId?: string) => void;
+  handleSendMessage: () => { message: ChatMessage; conversationId: string } | null;
   openConversation: (conversationId: string) => void;
   goBack: () => void;
   toggleExpanded: () => void;
@@ -30,6 +32,7 @@ const chatStore = create<ChatStore>((set, get) => ({
   },
   conversations: mockChatData.conversations,
   newMessage: "",
+  replyingToId: undefined,
 
   // Actions
   setChatState: (chatState) => set({ chatState }),
@@ -38,13 +41,15 @@ const chatStore = create<ChatStore>((set, get) => ({
 
   setNewMessage: (newMessage) => set({ newMessage }),
 
+  setReplyingTo: (messageId) => set({ replyingToId: messageId }),
+
   handleSendMessage: () => {
-    const { newMessage, conversations, chatState } = get();
+    const { newMessage, conversations, chatState, replyingToId } = get();
     const activeConv = conversations.find(
       (conv) => conv.id === chatState.activeConversation
     );
 
-    if (!newMessage.trim() || !activeConv) return;
+    if (!newMessage.trim() || !activeConv) return null;
 
     const message: ChatMessage = {
       id: `msg-${Date.now()}`,
@@ -52,6 +57,8 @@ const chatStore = create<ChatStore>((set, get) => ({
       timestamp: new Date().toISOString(),
       senderId: mockChatData.currentUser.id,
       isFromCurrentUser: true,
+      status: "sending",
+      replyTo: replyingToId,
     };
 
     const updatedConversations = conversations.map((conv) =>
@@ -67,7 +74,26 @@ const chatStore = create<ChatStore>((set, get) => ({
     set({
       conversations: updatedConversations,
       newMessage: "",
+      replyingToId: undefined,
     });
+
+    // Progress message status to 'sent' after a short delay (simulated ack)
+    setTimeout(() => {
+      const state = get();
+      const updated = state.conversations.map((conv) =>
+        conv.id === activeConv.id
+          ? {
+              ...conv,
+              messages: conv.messages.map((m) =>
+                m.id === message.id ? { ...m, status: "sent" as const } : m
+              ),
+            }
+          : conv
+      );
+      set({ conversations: updated });
+    }, 600);
+
+    return { message, conversationId: activeConv.id };
   },
 
   openConversation: (conversationId) => {
@@ -113,6 +139,8 @@ export const useChatState = () => {
   const setChatState = chatStore((state) => state.setChatState);
   const setConversations = chatStore((state) => state.setConversations);
   const setNewMessage = chatStore((state) => state.setNewMessage);
+  const replyingToId = chatStore((state) => state.replyingToId);
+  const setReplyingTo = chatStore((state) => state.setReplyingTo);
   const handleSendMessage = chatStore((state) => state.handleSendMessage);
   const openConversation = chatStore((state) => state.openConversation);
   const goBack = chatStore((state) => state.goBack);
@@ -132,11 +160,13 @@ export const useChatState = () => {
     chatState,
     conversations,
     newMessage,
+    replyingToId,
     totalUnreadCount,
     activeConversation,
     setChatState,
     setConversations,
     setNewMessage,
+    setReplyingTo,
     handleSendMessage,
     openConversation,
     goBack,

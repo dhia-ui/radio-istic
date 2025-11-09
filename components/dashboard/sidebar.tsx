@@ -28,6 +28,8 @@ import {
   Heart,
 } from "lucide-react"
 import RadioIsticLogo from "@/components/radio-istic-logo"
+import { Sun, Moon } from "lucide-react"
+import { useTheme } from "next-themes"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth-context"
 
@@ -46,15 +48,26 @@ const navItems = [
 
 export function DashboardSidebar() {
   const { isAuthenticated, logout, user } = useAuth()
+  const { theme, setTheme } = useTheme()
+  const toggleTheme = () => setTheme(theme === "dark" ? "light" : "dark")
 
   const isBureauMember = user?.role && user.role !== "member" && user.role !== "guest"
 
   return (
-    <Sidebar className="border-r-0">
+  <Sidebar className="border-r-0 glass-panel">
       <SidebarHeader className="border-b border-border py-6">
-        <Link href="/" className="flex items-center justify-center">
-          <RadioIsticLogo width={160} height={50} />
-        </Link>
+        <div className="flex items-center justify-between px-4">
+          <Link href="/" className="flex items-center justify-center">
+            <RadioIsticLogo width={160} height={50} />
+          </Link>
+          <button
+            onClick={toggleTheme}
+            aria-label="Basculer thème"
+            className="rounded-md p-2 hover:bg-sidebar-accent transition"
+          >
+            {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          </button>
+        </div>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>

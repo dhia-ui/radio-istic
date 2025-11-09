@@ -1,7 +1,11 @@
+"use client"
+
 import DashboardPageLayout from "@/components/dashboard/layout"
-import { Radio, ImageIcon, Video } from "lucide-react"
+import { Radio, ImageIcon, Video, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { AudioWaveform } from "@/components/media/audio-waveform"
+import { useMediaPlayer } from "@/components/media/media-player-context"
 
 const podcasts = [
   {
@@ -14,7 +18,7 @@ const podcasts = [
     cover: "/podcast-microphone-neon.jpg",
     category: "Podcast",
     audioUrl: "/audio/radio-istic-podcast-ep1.mp3",
-  },
+  },  
   {
     id: "2",
     title: "Tech Talk avec Shrek AI",
@@ -74,6 +78,7 @@ const galleries = [
 ]
 
 export default function MediaPage() {
+  const { playNow, addToQueue } = useMediaPlayer();
   return (
     <DashboardPageLayout
       header={{
@@ -90,11 +95,43 @@ export default function MediaPage() {
           étudiants.
         </p>
         <div className="bg-card/50 backdrop-blur border border-border rounded-lg p-4 mb-4">
-          <h3 className="font-display font-bold mb-2">Dernier épisode: {podcasts[0].title}</h3>
-          <audio controls className="w-full" preload="metadata">
-            <source src={podcasts[0].audioUrl} type="audio/mpeg" />
-            Votre navigateur ne supporte pas l'élément audio.
-          </audio>
+          <h3 className="font-display font-bold mb-3">Dernier épisode: {podcasts[0].title}</h3>
+          <div className="space-y-3">
+            <AudioWaveform
+              src={`/api/media/audio?file=${(podcasts[0].audioUrl ?? "").split('/').pop()}`}
+              title={`${podcasts[0].episode} • ${podcasts[0].duration}`}
+            />
+            <div className="flex gap-2">
+              <Button
+                variant="default"
+                onClick={() =>
+                  playNow({
+                    id: podcasts[0].id,
+                    title: podcasts[0].title,
+                    subtitle: podcasts[0].episode,
+                    src: `/api/media/audio?file=${(podcasts[0].audioUrl ?? "").split('/').pop()}`,
+                    cover: podcasts[0].cover,
+                  })
+                }
+              >
+                Lire maintenant
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() =>
+                  addToQueue({
+                    id: podcasts[0].id,
+                    title: podcasts[0].title,
+                    subtitle: podcasts[0].episode,
+                    src: `/api/media/audio?file=${(podcasts[0].audioUrl ?? "").split('/').pop()}`,
+                    cover: podcasts[0].cover,
+                  })
+                }
+              >
+                <Plus className="h-4 w-4 mr-1" /> Ajouter à la file
+              </Button>
+            </div>
+          </div>
         </div>
         <div className="flex gap-3">
           <Button variant="outline">Voir tous les podcasts</Button>
@@ -135,9 +172,45 @@ export default function MediaPage() {
                   </span>
                 </div>
                 {podcast.audioUrl && (
-                  <audio controls className="w-full" preload="none">
-                    <source src={podcast.audioUrl} type="audio/mpeg" />
-                  </audio>
+                  <div className="mt-3 space-y-2">
+                    <AudioWaveform
+                      src={`/api/media/audio?file=${(podcast.audioUrl ?? "").split('/').pop()}`}
+                      title={podcast.episode}
+                      height={48}
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="default"
+                        onClick={() =>
+                          playNow({
+                            id: podcast.id,
+                            title: podcast.title,
+                            subtitle: podcast.episode,
+                            src: `/api/media/audio?file=${(podcast.audioUrl ?? "").split('/').pop()}`,
+                            cover: podcast.cover,
+                          })
+                        }
+                      >
+                        Lire
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          addToQueue({
+                            id: podcast.id,
+                            title: podcast.title,
+                            subtitle: podcast.episode,
+                            src: `/api/media/audio?file=${(podcast.audioUrl ?? "").split('/').pop()}`,
+                            cover: podcast.cover,
+                          })
+                        }
+                      >
+                        <Plus className="h-3 w-3 mr-1" /> File
+                      </Button>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>

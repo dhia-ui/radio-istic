@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
@@ -10,7 +9,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import RadioIsticLogo from "@/components/radio-istic-logo"
 import Link from "next/link"
-import { Loader2 } from "lucide-react"
+import { Loader2, AlertCircle } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
 export default function SignupPage() {
   const [name, setName] = useState("")
@@ -19,20 +20,63 @@ export default function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState("")
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState<{
+    name?: string
+    email?: string
+    password?: string
+    confirmPassword?: string
+  }>({})
   const { signup } = useAuth()
   const router = useRouter()
+  const { toast } = useToast()
+
+  const validateForm = () => {
+    const errors: {
+      name?: string
+      email?: string
+      password?: string
+      confirmPassword?: string
+    } = {}
+
+    // Name validation
+    if (!name) {
+      errors.name = "Le nom est requis"
+    } else if (name.length < 2) {
+      errors.name = "Le nom doit contenir au moins 2 caractères"
+    }
+
+    // Email validation
+    if (!email) {
+      errors.email = "L'email est requis"
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      errors.email = "Email invalide"
+    }
+
+    // Password validation
+    if (!password) {
+      errors.password = "Le mot de passe est requis"
+    } else if (password.length < 6) {
+      errors.password = "Le mot de passe doit contenir au moins 6 caractères"
+    }
+
+    // Confirm password validation
+    if (!confirmPassword) {
+      errors.confirmPassword = "Veuillez confirmer le mot de passe"
+    } else if (password !== confirmPassword) {
+      errors.confirmPassword = "Les mots de passe ne correspondent pas"
+    }
+
+    setFieldErrors(errors)
+    return Object.keys(errors).length === 0
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
+    setFieldErrors({})
 
-    if (password !== confirmPassword) {
-      setError("Les mots de passe ne correspondent pas")
-      return
-    }
-
-    if (password.length < 6) {
-      setError("Le mot de passe doit contenir au moins 6 caractères")
+    // Validate form
+    if (!validateForm()) {
       return
     }
 
@@ -40,9 +84,19 @@ export default function SignupPage() {
 
     try {
       await signup(name, email, password)
+      toast({
+        title: "Inscription réussie!",
+        description: "Bienvenue sur Radio Istic",
+      })
       router.push("/members")
     } catch (err) {
-      setError("Erreur lors de l'inscription. Veuillez réessayer.")
+      const errorMessage = "Erreur lors de l'inscription. Veuillez réessayer."
+      setError(errorMessage)
+      toast({
+        variant: "destructive",
+        title: "Erreur d'inscription",
+        description: errorMessage,
+      })
     } finally {
       setIsLoading(false)
     }
@@ -59,6 +113,13 @@ export default function SignupPage() {
           <h1 className="text-2xl font-display font-bold text-center mb-2">Inscription</h1>
           <p className="text-center text-muted-foreground mb-6">Rejoignez la communauté Radio Istic</p>
 
+          {error && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Nom complet</Label>
@@ -67,10 +128,16 @@ export default function SignupPage() {
                 type="text"
                 placeholder="Votre nom"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                className="bg-background"
+                onChange={(e) => {
+                  setName(e.target.value)
+                  setFieldErrors({ ...fieldErrors, name: undefined })
+                }}
+                className={`bg-background ${fieldErrors.name ? "border-destructive" : ""}`}
+                disabled={isLoading}
               />
+              {fieldErrors.name && (
+                <p className="text-sm text-destructive">{fieldErrors.name}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -80,10 +147,16 @@ export default function SignupPage() {
                 type="email"
                 placeholder="votre.email@example.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="bg-background"
+                onChange={(e) => {
+                  setEmail(e.target.value)
+                  setFieldErrors({ ...fieldErrors, email: undefined })
+                }}
+                className={`bg-background ${fieldErrors.email ? "border-destructive" : ""}`}
+                disabled={isLoading}
               />
+              {fieldErrors.email && (
+                <p className="text-sm text-destructive">{fieldErrors.email}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -93,10 +166,16 @@ export default function SignupPage() {
                 type="password"
                 placeholder="••••••••"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="bg-background"
+                onChange={(e) => {
+                  setPassword(e.target.value)
+                  setFieldErrors({ ...fieldErrors, password: undefined })
+                }}
+                className={`bg-background ${fieldErrors.password ? "border-destructive" : ""}`}
+                disabled={isLoading}
               />
+              {fieldErrors.password && (
+                <p className="text-sm text-destructive">{fieldErrors.password}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -106,13 +185,17 @@ export default function SignupPage() {
                 type="password"
                 placeholder="••••••••"
                 value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                className="bg-background"
+                onChange={(e) => {
+                  setConfirmPassword(e.target.value)
+                  setFieldErrors({ ...fieldErrors, confirmPassword: undefined })
+                }}
+                className={`bg-background ${fieldErrors.confirmPassword ? "border-destructive" : ""}`}
+                disabled={isLoading}
               />
+              {fieldErrors.confirmPassword && (
+                <p className="text-sm text-destructive">{fieldErrors.confirmPassword}</p>
+              )}
             </div>
-
-            {error && <p className="text-sm text-destructive">{error}</p>}
 
             <Button
               type="submit"
