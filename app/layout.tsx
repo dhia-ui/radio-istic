@@ -41,7 +41,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" suppressHydrationWarning>
-      <body className={`${poppins.variable} ${inter.variable} ${jetbrainsMono.variable} antialiased`}>
+      <body className={`${poppins.variable} ${inter.variable} ${jetbrainsMono.variable} antialiased`} suppressHydrationWarning>
         <ClientLayoutWrapper mockData={mockData}>
           {children}
         </ClientLayoutWrapper>

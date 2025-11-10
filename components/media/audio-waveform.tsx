@@ -80,7 +80,16 @@ export const AudioWaveform: React.FC<AudioWaveformProps> = ({
         // Fetch a slice of the file (first few MB) for quick peak approximation.
         // We'll attempt full fetch only if small (< ~12MB).
         const headResp = await fetch(src, { method: "GET", headers: { Range: "bytes=0-4000000" } });
-        if (!headResp.ok) throw new Error("Impossible de récupérer l'audio pour l'aperçu");
+        if (!headResp.ok) {
+          // If file doesn't exist, fail gracefully
+          if (headResp.status === 404) {
+            console.warn('Audio file not found:', src);
+            setError("Fichier audio non disponible");
+            setLoadingPeaks(false);
+            return;
+          }
+          throw new Error("Impossible de récupérer l'audio pour l'aperçu");
+        }
         const arrayBuf = await headResp.arrayBuffer();
         const ctx = new AudioContext();
         const audioBuf = await ctx.decodeAudioData(arrayBuf.slice(0));
