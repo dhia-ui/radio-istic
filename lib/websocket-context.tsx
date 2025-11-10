@@ -1,191 +1,230 @@
-"use client"
+'use client'
 
-import { createContext, useContext, useEffect, type ReactNode } from "react"
-import { useChatState } from "@/components/chat/use-chat-state"
-import { useSocket } from "@/hooks/use-socket"
-import { useAuth } from "@/lib/auth-context"
-import type { ChatMessage } from "@/types/chat"
+import React, { createContext, useContext, useEffect, useState, useRef, type ReactNode } from 'react'
+import { io, Socket } from 'socket.io-client'
+import { useAuth } from './auth-context'
 
-type WebSocketContextType = {
-  isConnected: boolean
-  sendMessage: (conversationId: string, message: ChatMessage) => void
-  editMessage: (conversationId: string, messageId: string, newContent: string) => void
-  deleteMessage: (conversationId: string, messageId: string) => void
-  addReaction: (conversationId: string, messageId: string, emoji: string) => void
-  markAsRead: (conversationId: string) => void
-  typing: (conversationId: string, isTyping: boolean) => void
-  typingUsers: Record<string, boolean>
-  join: (conversationId: string) => void
-  leave: (conversationId: string) => void
+// ⚠️ CHANGE THIS TO YOUR RENDER URL AFTER DEPLOYMENT
+const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001'
+
+interface Message {
+  id: string
+  conversationId: string
+  content: string
+  senderId: string
+  senderName: string
+  timestamp: string
+  status: 'sent' | 'delivered' | 'read'
 }
 
-const WebSocketContext = createContext<WebSocketContextType | undefined>(undefined)
+type WebSocketContextType = {
+  socket: Socket | null
+  isConnected: boolean
+  sendMessage: (recipientId: string, message: string, conversationId: string) => void
+  onlineUsers: string[]
+  messages: Message[]
+  typingUsers: Record<string, boolean>
+  typing: (conversationId: string, isTyping: boolean, recipientId: string) => void
+  markAsRead: (conversationId: string, messageIds?: string[]) => void
+}
+
+const WebSocketContext = createContext<WebSocketContextType>({
+  socket: null,
+  isConnected: false,
+  sendMessage: () => {},
+  onlineUsers: [],
+  messages: [],
+  typingUsers: {},
+  typing: () => {},
+  markAsRead: () => {}
+})
+
+export const useWebSocket = () => useContext(WebSocketContext)
 
 export function WebSocketProvider({ children }: { children: ReactNode }) {
+  const [socket, setSocket] = useState<Socket | null>(null)
+  const [isConnected, setIsConnected] = useState(false)
+  const [onlineUsers, setOnlineUsers] = useState<string[]>([])
+  const [messages, setMessages] = useState<Message[]>([])
+  const [typingUsers, setTypingUsers] = useState<Record<string, boolean>>({})
   const { user } = useAuth()
-  const { conversations, setConversations } = useChatState()
-  
-  const {
-    isConnected,
-    sendMessage: socketSendMessage,
-    editMessage: socketEditMessage,
-    deleteMessage: socketDeleteMessage,
-    addReaction: socketAddReaction,
-    markAsRead: socketMarkAsRead,
-    messages,
-    typingUsers,
-    typing,
-    joinConversation,
-    leaveConversation,
-  } = useSocket(user?.id || "")
+  const reconnectAttempts = useRef(0)
+  const maxReconnectAttempts = 5
 
-  // Handle incoming messages from Socket.io
   useEffect(() => {
-    if (messages.length > 0) {
-      const latestMessage = messages[messages.length - 1]
+    if (!user) return
+
+    console.log('🔌 Connecting to WebSocket server:', SOCKET_URL)
+
+    const newSocket = io(SOCKET_URL, {
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: maxReconnectAttempts,
+      reconnectionDelay: 1000,
+      timeout: 20000
+    })
+
+    newSocket.on('connect', () => {
+      console.log('✅ WebSocket connected')
+      setIsConnected(true)
+      reconnectAttempts.current = 0
       
-      // Update conversations with new message
-      const updatedConversations = conversations.map((conv) => {
-        // Find if this message belongs to this conversation
-        if (conv.participants.some(p => p.id === latestMessage.senderId)) {
-          const isFromCurrentUser = latestMessage.senderId === user?.id
-          
-          const newMessage: ChatMessage = {
-            id: latestMessage.id,
-            content: latestMessage.content,
-            timestamp: latestMessage.timestamp,
-            senderId: latestMessage.senderId,
-            isFromCurrentUser,
-            status: latestMessage.status,
-            reactions: latestMessage.reactions,
-          }
-
-          return {
-            ...conv,
-            messages: [...conv.messages, newMessage],
-            lastMessage: newMessage,
-            unreadCount: isFromCurrentUser ? conv.unreadCount : conv.unreadCount + 1,
-          }
-        }
-        return conv
+      // Authenticate user
+      newSocket.emit('authenticate', {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        avatar: user.avatar
       })
+    })
 
-      setConversations(updatedConversations)
+    newSocket.on('disconnect', () => {
+      console.log('❌ WebSocket disconnected')
+      setIsConnected(false)
+    })
+
+    newSocket.on('connect_error', (error) => {
+      console.error('❌ Connection error:', error.message)
+      setIsConnected(false)
+      reconnectAttempts.current++
+      
+      if (reconnectAttempts.current >= maxReconnectAttempts) {
+        console.error('Max reconnection attempts reached')
+      }
+    })
+
+    newSocket.on('online-users', (users) => {
+      console.log('👥 Online users:', users.length)
+      setOnlineUsers(users.map((u: any) => u.id))
+    })
+
+    newSocket.on('user-status-change', (data) => {
+      console.log('👤 User status change:', data)
+      if (data.status === 'online') {
+        setOnlineUsers(prev => [...prev, data.userId])
+      } else {
+        setOnlineUsers(prev => prev.filter(id => id !== data.userId))
+      }
+    })
+
+    newSocket.on('receive-message', (message: Message) => {
+      console.log('💬 Message received:', message)
+      setMessages(prev => [...prev, message])
+      
+      // Play notification sound
+      try {
+        const audio = new Audio('/sounds/message.mp3')
+        audio.volume = 0.3
+        audio.play().catch(e => console.log('Audio play failed:', e))
+      } catch (e) {
+        console.log('Audio error:', e)
+      }
+    })
+
+    newSocket.on('message-sent', (message: Message) => {
+      console.log('✅ Message sent confirmation:', message)
+      setMessages(prev => [...prev, message])
+    })
+
+    newSocket.on('message-delivered', (data) => {
+      console.log('✅ Message delivered:', data)
+      setMessages(prev => 
+        prev.map(msg => 
+          msg.id === data.messageId 
+            ? { ...msg, status: 'delivered' }
+            : msg
+        )
+      )
+    })
+
+    newSocket.on('messages-read', (data) => {
+      console.log('✅ Messages read:', data)
+      setMessages(prev =>
+        prev.map(msg =>
+          data.messageIds.includes(msg.id)
+            ? { ...msg, status: 'read' }
+            : msg
+        )
+      )
+    })
+
+    newSocket.on('user-typing', (data) => {
+      console.log('⌨️ User typing:', data)
+      setTypingUsers(prev => ({
+        ...prev,
+        [data.conversationId]: data.isTyping
+      }))
+    })
+
+    setSocket(newSocket)
+
+    return () => {
+      console.log('🔌 Disconnecting WebSocket')
+      newSocket.disconnect()
     }
-  }, [messages, conversations, setConversations, user?.id])
+  }, [user])
 
-  const sendMessage = (conversationId: string, message: ChatMessage) => {
-    // Optimistic update
-    const updatedConversations = conversations.map((conv) =>
-      conv.id === conversationId
-        ? {
-            ...conv,
-            messages: [...conv.messages, { ...message, status: "sending" as const }],
-            lastMessage: message,
-          }
-        : conv,
-    )
-    setConversations(updatedConversations)
+  const sendMessage = (recipientId: string, message: string, conversationId: string) => {
+    if (!socket || !isConnected) {
+      console.error('Cannot send message: Socket not connected')
+      return
+    }
 
-    // Send via Socket.io - pass the full message object
-    socketSendMessage(conversationId, message)
+    socket.emit('send-message', {
+      conversationId,
+      recipientId,
+      message,
+      senderId: user?.id,
+      senderName: user?.name
+    })
   }
 
-  const editMessage = (conversationId: string, messageId: string, newContent: string) => {
-    // Optimistic update
-    const updatedConversations = conversations.map((conv) =>
-      conv.id === conversationId
-        ? {
-            ...conv,
-            messages: conv.messages.map((msg) =>
-              msg.id === messageId ? { ...msg, content: newContent, edited: true } : msg
-            ),
-          }
-        : conv,
-    )
-    setConversations(updatedConversations)
+  const typing = (conversationId: string, isTyping: boolean, recipientId: string) => {
+    if (!socket || !isConnected) return
 
-    // Send via Socket.io
-    socketEditMessage(conversationId, messageId, newContent)
+    if (isTyping) {
+      socket.emit('typing-start', {
+        conversationId,
+        recipientId,
+        userName: user?.name
+      })
+    } else {
+      socket.emit('typing-stop', {
+        conversationId,
+        recipientId
+      })
+    }
   }
 
-  const deleteMessage = (conversationId: string, messageId: string) => {
-    // Optimistic update
-    const updatedConversations = conversations.map((conv) =>
-      conv.id === conversationId
-        ? {
-            ...conv,
-            messages: conv.messages.filter((msg) => msg.id !== messageId),
-          }
-        : conv,
-    )
-    setConversations(updatedConversations)
+  const markAsRead = (conversationId: string, messageIds?: string[]) => {
+    if (!socket || !isConnected) return
 
-    // Send via Socket.io
-    socketDeleteMessage(conversationId, messageId)
-  }
+    // If no messageIds provided, mark all messages in conversation as read
+    const msgIds = messageIds || messages
+      .filter(msg => msg.conversationId === conversationId)
+      .map(msg => msg.id)
 
-  const addReaction = (conversationId: string, messageId: string, emoji: string) => {
-    // Optimistic update
-    const updatedConversations = conversations.map((conv) =>
-      conv.id === conversationId
-        ? {
-            ...conv,
-            messages: conv.messages.map((msg) =>
-              msg.id === messageId
-                ? { ...msg, reactions: [...(msg.reactions || []), { emoji, userId: user?.id || "" }] }
-                : msg
-            ),
-          }
-        : conv,
-    )
-    setConversations(updatedConversations)
+    if (msgIds.length === 0) return
 
-    // Send via Socket.io
-    socketAddReaction(conversationId, messageId, emoji)
-  }
-
-  const markAsRead = (conversationId: string) => {
-    // Find the conversation and get the last message ID
-    const conversation = conversations.find(conv => conv.id === conversationId)
-    const lastMessageId = conversation?.messages[conversation.messages.length - 1]?.id
-    
-    if (!lastMessageId) return
-
-    // Update local state
-    const updatedConversations = conversations.map((conv) =>
-      conv.id === conversationId ? { ...conv, unreadCount: 0 } : conv
-    )
-    setConversations(updatedConversations)
-
-    // Send via Socket.io with messageId
-    socketMarkAsRead(conversationId, lastMessageId)
+    socket.emit('mark-as-read', {
+      conversationId,
+      messageIds: msgIds,
+      recipientId: messages.find(m => m.conversationId === conversationId)?.senderId
+    })
   }
 
   return (
-    <WebSocketContext.Provider
-      value={{
-        isConnected,
-        sendMessage,
-        editMessage,
-        deleteMessage,
-        addReaction,
-        markAsRead,
-        typing,
-        typingUsers,
-        join: joinConversation,
-        leave: leaveConversation,
-      }}
-    >
+    <WebSocketContext.Provider value={{
+      socket,
+      isConnected,
+      sendMessage,
+      onlineUsers,
+      messages,
+      typingUsers,
+      typing,
+      markAsRead
+    }}>
       {children}
     </WebSocketContext.Provider>
   )
-}
-
-export function useWebSocket() {
-  const context = useContext(WebSocketContext)
-  if (!context) {
-    throw new Error("useWebSocket must be used within WebSocketProvider")
-  }
-  return context
 }

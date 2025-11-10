@@ -392,3 +392,93 @@ select:focus-visible,
   clip: auto;
   white-space: normal;
 }
+
+/* ========================================
+   LIGHT THEME FIXES
+   ======================================== */
+
+/* Fix Light Theme Visibility */
+[data-theme="light"] {
+  --background: #FFFFFF;
+  --foreground: #0A0A0A;
+  --card: #F5F5F5;
+  --card-foreground: #0A0A0A;
+  --popover: #FFFFFF;
+  --popover-foreground: #0A0A0A;
+  --primary: #00D9FF;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F0F0F0;
+  --secondary-foreground: #0A0A0A;
+  --muted: #F5F5F5;
+  --muted-foreground: #6B7280;
+  --accent: #F0F0F0;
+  --accent-foreground: #0A0A0A;
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
+  --border: #E5E7EB;
+  --input: #E5E7EB;
+  --ring: #00D9FF;
+  --radius: 0.5rem;
+}
+
+/* Ensure text is always visible in light mode */
+[data-theme="light"] * {
+  color: var(--foreground);
+}
+
+[data-theme="light"] .text-muted-foreground {
+  color: #6B7280 !important;
+}
+
+[data-theme="light"] .bg-background {
+  background-color: #FFFFFF !important;
+}
+
+[data-theme="light"] .bg-card {
+  background-color: #F5F5F5 !important;
+}
+
+/* Fix input fields in light mode */
+[data-theme="light"] input,
+[data-theme="light"] textarea,
+[data-theme="light"] select {
+  background-color: #FFFFFF !important;
+  color: #0A0A0A !important;
+  border-color: #E5E7EB !important;
+}
+
+/* Fix buttons in light mode */
+[data-theme="light"] .btn {
+  color: inherit;
+}
+
+[data-theme="light"] .btn-primary {
+  background-color: #00D9FF;
+  color: #FFFFFF;
+}
+
+[data-theme="light"] .btn-primary:hover {
+  background-color: #00B8DD;
+}
+
+/* Fix sidebar in light mode */
+[data-theme="light"] aside,
+[data-theme="light"] nav {
+  background-color: #F9FAFB;
+  border-color: #E5E7EB;
+}
+
+/* Fix cards in light mode */
+[data-theme="light"] .card {
+  background-color: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  color: #0A0A0A;
+}
+
+/* Fix dropdowns and popovers in light mode */
+[data-theme="light"] .dropdown-content,
+[data-theme="light"] .popover {
+  background-color: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+}
