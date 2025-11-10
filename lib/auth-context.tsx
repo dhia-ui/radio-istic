@@ -15,6 +15,7 @@ export type UserRole =
   | "guest"
 
 export interface User {
+  avatar: any
   id: string
   name: string
   email: string
