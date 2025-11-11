@@ -21,8 +21,11 @@ type WebSocketContextType = {
   socket: Socket | null
   isConnected: boolean
   sendMessage: (recipientId: string, message: string, conversationId: string) => void
+  join: (conversationId: string) => void
+  leave: (conversationId: string) => void
   onlineUsers: string[]
   messages: Message[]
+  conversationHistories: Record<string, Message[]>
   typingUsers: Record<string, boolean>
   typing: (conversationId: string, isTyping: boolean, recipientId: string) => void
   markAsRead: (conversationId: string, messageIds?: string[]) => void
@@ -32,8 +35,11 @@ const WebSocketContext = createContext<WebSocketContextType>({
   socket: null,
   isConnected: false,
   sendMessage: () => {},
+  join: () => {},
+  leave: () => {},
   onlineUsers: [],
   messages: [],
+  conversationHistories: {},
   typingUsers: {},
   typing: () => {},
   markAsRead: () => {}
@@ -42,17 +48,24 @@ const WebSocketContext = createContext<WebSocketContextType>({
 export const useWebSocket = () => useContext(WebSocketContext)
 
 export function WebSocketProvider({ children }: { children: ReactNode }) {
+  const [mounted, setMounted] = useState(false)
   const [socket, setSocket] = useState<Socket | null>(null)
   const [isConnected, setIsConnected] = useState(false)
   const [onlineUsers, setOnlineUsers] = useState<string[]>([])
   const [messages, setMessages] = useState<Message[]>([])
+  const [conversationHistories, setConversationHistories] = useState<Record<string, Message[]>>({})
   const [typingUsers, setTypingUsers] = useState<Record<string, boolean>>({})
   const { user } = useAuth()
   const reconnectAttempts = useRef(0)
   const maxReconnectAttempts = 5
 
+  // Prevent SSR hydration mismatch - only initialize WebSocket on client
   useEffect(() => {
-    if (!user) return
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!mounted || !user) return
 
     console.log('🔌 Connecting to WebSocket server:', SOCKET_URL)
 
@@ -156,13 +169,26 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
       }))
     })
 
+    newSocket.on('conversation-history', (data) => {
+      console.log('📜 Conversation history loaded:', data.conversationId, data.messages.length, 'messages')
+      setConversationHistories(prev => ({
+        ...prev,
+        [data.conversationId]: data.messages
+      }))
+    })
+
     setSocket(newSocket)
 
     return () => {
       console.log('🔌 Disconnecting WebSocket')
       newSocket.disconnect()
     }
-  }, [user])
+  }, [user, mounted])
+
+  // Don't render WebSocket-dependent content during SSR
+  if (!mounted) {
+    return <>{children}</>
+  }
 
   const sendMessage = (recipientId: string, message: string, conversationId: string) => {
     if (!socket || !isConnected) {
@@ -196,6 +222,29 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const join = (conversationId: string) => {
+    if (!socket || !isConnected) {
+      console.error('Cannot join conversation: Socket not connected')
+      return
+    }
+
+    console.log('📥 Joining conversation:', conversationId)
+    socket.emit('join-conversation', {
+      conversationId,
+      userId: user?.id
+    })
+  }
+
+  const leave = (conversationId: string) => {
+    if (!socket || !isConnected) return
+
+    console.log('📤 Leaving conversation:', conversationId)
+    socket.emit('leave-conversation', {
+      conversationId,
+      userId: user?.id
+    })
+  }
+
   const markAsRead = (conversationId: string, messageIds?: string[]) => {
     if (!socket || !isConnected) return
 
@@ -218,8 +267,11 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
       socket,
       isConnected,
       sendMessage,
+      join,
+      leave,
       onlineUsers,
       messages,
+      conversationHistories,
       typingUsers,
       typing,
       markAsRead

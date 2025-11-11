@@ -1,174 +1,345 @@
-# 📻 Radio Istic Dashboard
+# Radio Istic — Project Structure & Guide# 📻 Radio Istic Dashboard
 
-<div align="center">
 
-![Radio Istic Logo](public/assets/radio-istic-banner.png)
 
-**The official student club dashboard of ISTIC Borj Cédria**
+This README documents the folder and file structure of the Radio Istic dashboard project and explains the purpose of each major directory and important files. Use this as a guide to navigate the codebase, understand responsibilities, and find where to make changes.<div align="center">
 
-[![Next.js](https://img.shields.io/badge/Next.js-14.2-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
+
+
+> Note: This repository is a Next.js (App Router) TypeScript project that uses Tailwind CSS, Radix UI primitives, Zustand/context for state, Socket.IO for a standalone WebSocket service, and Supabase client libraries (for optional backend features).![Radio Istic Logo](public/assets/radio-istic-banner.png)
+
+
+
+---**The official student club dashboard of ISTIC Borj Cédria**
+
+
+
+## Quick commands[![Next.js](https://img.shields.io/badge/Next.js-14.2-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
+
 [![React](https://img.shields.io/badge/React-18-blue?style=for-the-badge&logo=react)](https://reactjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
+
+Run the app locally (from project root):[![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
+
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.1-38bdf8?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
 
-[Features](#-features) •
-[Tech Stack](#-tech-stack) •
+```powershell
+
+# install packages (pnpm recommended as lock is pnpm)[Features](#-features) •
+
+pnpm install[Tech Stack](#-tech-stack) •
+
 [Installation](#-installation) •
-[Usage](#-usage) •
-[Project Structure](#-project-structure) •
+
+# dev[Usage](#-usage) •
+
+pnpm dev[Project Structure](#-project-structure) •
+
 [Contributing](#-contributing)
 
-</div>
+# build
 
----
+pnpm build</div>
 
-## 📖 Table of Contents
+pnpm start
 
-- [About](#-about-radio-istic)
-- [Features](#-features)
+```---
+
+
+
+Environment variables the app expects (development/prod):## 📖 Table of Contents
+
+- `NEXT_PUBLIC_SOCKET_URL` — URL of the WebSocket server (e.g. https://radio-istic.onrender.com)
+
+- `NEXT_PUBLIC_SITE_URL` — The website public URL (e.g. https://radioistic.netlify.app)- [About](#-about-radio-istic)
+
+- Supabase keys and other secrets are stored in `.env.local` (not committed to source control).- [Features](#-features)
+
 - [Tech Stack](#-tech-stack)
-- [Prerequisites](#-prerequisites)
+
+---- [Prerequisites](#-prerequisites)
+
 - [Installation](#-installation)
-- [Usage](#-usage)
+
+## Top-level files and their purpose- [Usage](#-usage)
+
 - [Project Structure](#-project-structure)
-- [Key Components](#-key-components)
-- [Authentication & Security](#-authentication--security)
-- [Styling & Design System](#-styling--design-system)
-- [API & Data Management](#-api--data-management)
-- [Deployment](#-deployment)
-- [Contributing](#-contributing)
-- [License](#-license)
+
+- `package.json` — Project scripts and dependencies for the frontend app.- [Key Components](#-key-components)
+
+- `pnpm-lock.yaml` — Lockfile used by pnpm (exact dependency tree).- [Authentication & Security](#-authentication--security)
+
+- `next.config.mjs` / `next.config.ts` — Next.js configuration.- [Styling & Design System](#-styling--design-system)
+
+- `tsconfig.json` — TypeScript configuration.- [API & Data Management](#-api--data-management)
+
+- `postcss.config.mjs` / `tailwind.config.js` (if present) — TailwindCSS setup (postcss config file present in repo).- [Deployment](#-deployment)
+
+- `components.json`, `mock.json` — Project config / mock data files used by the app or build tools.- [Contributing](#-contributing)
+
+- `README.md` — (this file) project overview and structure.- [License](#-license)
+
 - [Contact](#-contact)
 
 ---
 
-## 🎯 About Radio Istic
-
-**Radio Istic** is the official student club of ISTIC (Institut Supérieur des Technologies de l'Information et de la Communication) Borj Cédria, Tunisia. This dashboard serves as the central hub for club management, member engagement, event organization, and media production.
-
-### Mission
-
-Enrich student life at ISTIC by providing quality events, training, and media content created by and for students.
-
-### Vision
-
-Build a dynamic community that brings together students passionate about media, technology, creativity, sports, and innovation.
-
-### Core Values
-
-- **Creativity**: Encouraging innovative ideas and unique content
-- **Collaboration**: Working together across different fields and years
-- **Authenticity**: Staying true to student experiences and voices
-- **Inclusion**: Welcoming all students regardless of their background or year
-
 ---
 
-## ✨ Features
+## `app/` (Next.js App Router)
 
-### 🏠 Dashboard & Overview
+This folder is the Next.js entry for pages (server and client components). Each folder under `app` corresponds to a route.## 🎯 About Radio Istic
 
-- **Real-time Statistics**: Live member count, online status, event participation
+
+
+- `layout.tsx` — Root layout for the site (providers, fonts, global wrappers). Contains global `suppressHydrationWarning` for hydration cases.**Radio Istic** is the official student club of ISTIC (Institut Supérieur des Technologies de l'Information et de la Communication) Borj Cédria, Tunisia. This dashboard serves as the central hub for club management, member engagement, event organization, and media production.
+
+- `page.tsx` — The top-level home page.
+
+- `about/`, `login/`, `signup/`, `settings/`, `chat/`, `media/`, `members/`, `training/`, `sponsors/`, `events/`, `bureau/` — Route folders. Each typically contains `page.tsx`, and optionally `loading.tsx`.### Mission
+
+- `app/[id]/` patterns — Dynamic routes for member profiles or other parameterized pages.
+
+- `globals.css` — Global CSS for Tailwind utilities and base styles.Enrich student life at ISTIC by providing quality events, training, and media content created by and for students.
+
+
+
+Notes: Interactive UI pieces are implemented as Client Components (`'use client'`) where necessary.### Vision
+
+
+
+---Build a dynamic community that brings together students passionate about media, technology, creativity, sports, and innovation.
+
+
+
+## `components/`### Core Values
+
+All reusable UI components, grouped by domain.
+
+- **Creativity**: Encouraging innovative ideas and unique content
+
+Top-level components:- **Collaboration**: Working together across different fields and years
+
+- `member-profile-modal.tsx` — modal to show member details- **Authenticity**: Staying true to student experiences and voices
+
+- `protected-route.tsx` — client-side route protection wrapper- **Inclusion**: Welcoming all students regardless of their background or year
+
+- `radio-istic-logo.tsx` — site logo
+
+- `theme-provider.tsx` — theme handling for dark/light mode---
+
+
+
+Subfolders of note:## ✨ Features
+
+- `chat/` — Chat UI components
+
+  - `chat-contact.tsx`, `chat-conversation.tsx`, `chat-message.tsx`, `chat-header.tsx`, `chat-preview.tsx`, `chat-status-indicator.tsx`, `index.tsx`, `mobile-chat.tsx` — conversation list, messages, and UI### 🏠 Dashboard & Overview
+
+  - `use-chat-state.ts` — Zustand/React hook that manages conversation and message state
+
+  - `utils.ts` — chat-specific helpers- **Real-time Statistics**: Live member count, online status, event participation
+
 - **Quick Stats Cards**: Members (50+), Events (25+), Podcasts (15+), Training (10+)
-- **Activity Feed**: Recent club activities and updates
-- **Responsive Design**: Optimized for desktop, tablet, and mobile devices
 
-### 👥 Member Portal
+- `dashboard/` — Dashboard layout and widgets (sidebar, mobile header, charts, stat widgets, notifications)- **Activity Feed**: Recent club activities and updates
 
-- **Member Directory**: Comprehensive list of all 40+ club members
-- **Advanced Filtering**: Filter by field (GLSI, IRS, LISI, LAI, IOT, LT), year (1-3), and online status
+  - `mobile-header.tsx`, `sidebar.tsx`, and many widget/card components grouped under `card/`, `chart/`, `widget/`, `stat/`, etc.- **Responsive Design**: Optimized for desktop, tablet, and mobile devices
+
+
+
+- `icons/` — Local SVG icon components (clock, bell, arrow-left, arrow-right, etc.). These are simple React components exporting SVGs used across the UI.### 👥 Member Portal
+
+
+
+- `ui/` — Primitive UI building blocks and Radix wrappers (Avatar, Button, Input, Select, DropdownMenu, RadioGroup, etc.). Many components wrap Radix primitives and add Tailwind classes.- **Member Directory**: Comprehensive list of all 40+ club members
+
+  - Important files: `button.tsx` (updated to forwardRef), `avatar.tsx` and `avatar-with-fallback.tsx` (avatar fallbacks & 404 handling), `dropdown-menu.tsx`, `radio-group.tsx`, `select.tsx`, `indicator-bullet.tsx`.- **Advanced Filtering**: Filter by field (GLSI, IRS, LISI, LAI, IOT, LT), year (1-3), and online status
+
 - **Search Functionality**: Quick search by name, email, or role
-- **Member Profiles**: Detailed profiles with avatar, contact info, motivation, projects, and skills
-- **Points & Ranking System**: Gamification with point tracking and leaderboards
+
+Notes:- **Member Profiles**: Detailed profiles with avatar, contact info, motivation, projects, and skills
+
+- Many of the UI primitives were updated to include `suppressHydrationWarning` on indicators or wrapper elements to avoid hydration mismatches with icons that render differently server/client.- **Points & Ranking System**: Gamification with point tracking and leaderboards
+
 - **Bureau Highlighting**: Special badges for bureau members (President, Vice-President, Secretary, etc.)
-- **Top Members Section**: Showcase top 5 members by points
+
+---- **Top Members Section**: Showcase top 5 members by points
+
 - **Online Status Indicators**: Real-time online/offline status
+
+## `lib/` — application libraries and providers
 
 ### 📅 Events Management
 
-- **Event Catalog**: Browse upcoming events with detailed information
-- **Event Categories**: Sport, Podcast, Social Events (Soirée), Trips (Voyage), Social
-- **Event Details**: Date, time, location, participant count, max capacity
-- **Event Images**: Visual representation for each event
+- `auth-context.tsx` — Auth provider and `useAuth` hook (client component). Manages simulated login/signup and stores user in localStorage.
+
+- `websocket-context.tsx` — WebSocket provider (client component) that connects to the standalone Socket.IO server and exposes `useWebSocket()` for sending/receiving real-time events.- **Event Catalog**: Browse upcoming events with detailed information
+
+- `members-data.ts` — Mock members dataset used in development.- **Event Categories**: Sport, Podcast, Social Events (Soirée), Trips (Voyage), Social
+
+- `utils.ts` — application-wide utility helpers.- **Event Details**: Date, time, location, participant count, max capacity
+
+- `websocket-client.tsx` (if present) — socket client initialization and helpers.- **Event Images**: Visual representation for each event
+
 - **Registration System**: Sign up for events directly from the dashboard
-- **Event Types**:
+
+---- **Event Types**:
+
   - **Sports**: Ping-Pong tournaments, Football tournaments, Basketball
-  - **Podcasts**: Live recordings with tech industry guests
-  - **Social**: Cinema nights, Matchy Matchy networking events
-  - **Trips**: Weekend getaways (Ain Draham and other destinations)
+
+## `hooks/`  - **Podcasts**: Live recordings with tech industry guests
+
+Small reusable hooks for UI behavior:  - **Social**: Cinema nights, Matchy Matchy networking events
+
+- `use-mobile.ts` — Detect mobile viewport  - **Trips**: Weekend getaways (Ain Draham and other destinations)
+
+- `use-toast.ts` — toast notifications helper
 
 ### 💬 Real-time Chat System
 
+---
+
 - **Direct Messaging**: One-on-one conversations with other members
-- **Group Conversations**: Multiple participants in a single conversation
-- **Real-time Updates**: WebSocket-powered instant messaging
+
+## `data/`- **Group Conversations**: Multiple participants in a single conversation
+
+- `chat-mock.ts` — Mock chat data used by the chat UI to seed conversations during development.- **Real-time Updates**: WebSocket-powered instant messaging
+
 - **Unread Message Badges**: Visual indicators for new messages
-- **Message History**: Complete conversation history
+
+---- **Message History**: Complete conversation history
+
 - **Typing Indicators**: See when someone is typing
-- **Online Status**: See who's currently online
-- **Mobile Chat Drawer**: Floating chat button with full-screen drawer on mobile
-- **Desktop Chat Panel**: Persistent chat panel in the sidebar on desktop
-- **Chat States**: Collapsed, expanded, and full conversation views
 
-### 🎨 Media & Content
+## `types/`- **Online Status**: See who's currently online
 
-- **Media Gallery**: Browse and view club media (podcasts, videos, photos)
-- **Podcast Library**: Access all recorded podcast episodes
-- **Photo Albums**: Event photos and club activities
-- **Video Content**: Club videos and productions
+TypeScript definition files for domain types:- **Mobile Chat Drawer**: Floating chat button with full-screen drawer on mobile
 
-### 🎓 Training & Workshops
+- `chat.ts` — types for Chat, Conversation, Message- **Desktop Chat Panel**: Persistent chat panel in the sidebar on desktop
 
-- **Training Catalog**: Available workshops and training sessions
+- `dashboard.ts` — types used by dashboard widgets- **Chat States**: Collapsed, expanded, and full conversation views
+
+
+
+---### 🎨 Media & Content
+
+
+
+## `public/`- **Media Gallery**: Browse and view club media (podcasts, videos, photos)
+
+Static assets served by Next.js:- **Podcast Library**: Access all recorded podcast episodes
+
+- `assets/` — images, sponsors, avatars, event images, fonts- **Photo Albums**: Event photos and club activities
+
+- Common images: `logo-radio-istic.png`, `pc_blueprint.gif`, avatar assets- **Video Content**: Club videos and productions
+
+
+
+Notes: Next/Image usage warnings can appear if width/height/priority props are not set for above-the-fold LCP images.### 🎓 Training & Workshops
+
+
+
+---- **Training Catalog**: Available workshops and training sessions
+
 - **Skill Development**: Photoshop, Illustrator, video editing, podcast production
-- **Registration**: Sign up for training sessions
-- **Certifications**: Track completed training
 
-### 👔 Club Life
+## `styles/`- **Registration**: Sign up for training sessions
 
-- **About Section**: Detailed information about the club
-- **Bureau Members**: Meet the leadership team with roles and responsibilities
+- `globals.css` — Tailwind base and custom CSS- **Certifications**: Track completed training
+
+
+
+---### 👔 Club Life
+
+
+
+## `websocket-server/` (standalone backend service)- **About Section**: Detailed information about the club
+
+This is a separate Node/Express + Socket.IO service deployed to Render. It is not part of the Next.js serverless functions because Netlify doesn't support persistent WebSockets.- **Bureau Members**: Meet the leadership team with roles and responsibilities
+
 - **Club Activities**: Overview of all club activities
-- **Mission & Values**: Core principles and goals
 
-### 🏆 Sponsors Management
+Key files:- **Mission & Values**: Core principles and goals
 
-- **Sponsor Directory**: List of current and past sponsors
+- `server.js` — Express + Socket.IO server implementation: authentication on connect, message routing, typing indicators, online presence, read receipts, etc.
+
+- `package.json` — Scripts and dependencies for the websocket server. A lightweight `build` script (echo) is present to satisfy some host requirements.### 🏆 Sponsors Management
+
+- `render.yaml` — Optional Render.com service config used for automatic deploys.
+
+- `package-lock.json` — lockfile for the server dependencies (committed).- **Sponsor Directory**: List of current and past sponsors
+
 - **Partnership Details**: Sponsor benefits and collaboration information
-- **Contact Information**: Direct links to sponsor representatives
 
-### 🔐 Authentication & Authorization
+Deployment notes:- **Contact Information**: Direct links to sponsor representatives
 
-- **User Registration**: New member sign-up flow
+- Hosted separately (e.g. https://radio-istic.onrender.com) and the frontend connects using `NEXT_PUBLIC_SOCKET_URL`.
+
+- Consider an uptime monitor to reduce cold-start latency on free Render plans.### 🔐 Authentication & Authorization
+
+
+
+---- **User Registration**: New member sign-up flow
+
 - **Login System**: Email-based authentication
-- **Protected Routes**: Role-based access control
-- **Session Management**: Persistent authentication with localStorage
+
+## Tests & Linting- **Protected Routes**: Role-based access control
+
+- This project does not contain a dedicated test folder in the workspace snapshot. Add tests under `__tests__` or `tests/` and wire up Vitest/Jest if needed.- **Session Management**: Persistent authentication with localStorage
+
 - **Role System**: Multiple user roles (admin, president, vice-president, secretary, sponsor-manager, events-organizer, media-responsable, member, guest)
-- **Profile Management**: User profile viewing and editing
 
-### 🔔 Notifications
+---- **Profile Management**: User profile viewing and editing
 
-- **Real-time Notifications**: Instant alerts for important updates
-- **Notification Types**: Info, Warning, Success, Error
-- **Priority Levels**: Low, Medium, High
-- **Read/Unread Status**: Track which notifications have been seen
+
+
+## Troubleshooting: Hydration Errors### 🔔 Notifications
+
+- Some SVG icons from lucide-react (or dynamically generated SVG fallbacks) can render differently between server and client and trigger hydration errors like "Expected server HTML to contain a matching <circle>".
+
+- Mitigation steps implemented in the codebase:- **Real-time Notifications**: Instant alerts for important updates
+
+  - Add `suppressHydrationWarning` on elements that wrap icons or on Radix `ItemIndicator` components.- **Notification Types**: Info, Warning, Success, Error
+
+  - Ensure interactive components that rely on client-only state use `'use client'` directive.- **Priority Levels**: Low, Medium, High
+
+  - Prefer deterministic server rendering for icons or move icon rendering to client components if truly dynamic.- **Read/Unread Status**: Track which notifications have been seen
+
 - **Notification Center**: Central hub for all notifications
+
+If you still see hydration errors, open the component in the stack trace, ensure its server render is deterministic, or wrap the differing part with a client-only component.
 
 ### 📊 Analytics & Tracking
 
+---
+
 - **Member Activity Tracking**: Monitor member engagement
-- **Event Participation**: Track who's attending which events
-- **Points System**: Gamification with point rewards
-- **Ranking System**: Leaderboards based on participation and contribution
+
+## Recommended next steps for contributors- **Event Participation**: Track who's attending which events
+
+- Add or verify environment variables in Netlify/production for `NEXT_PUBLIC_SOCKET_URL` and `NEXT_PUBLIC_SITE_URL`.- **Points System**: Gamification with point rewards
+
+- Run the app with `pnpm dev`, open `/chat` and verify messages flow (first connection to Render may take 30–60s due to cold starts).- **Ranking System**: Leaderboards based on participation and contribution
+
+- Add small unit tests for `use-chat-state` and `websocket-context` to verify message handling and reconnection logic.
 
 ### 🎨 Customization
 
-- **Dark Mode**: Modern dark theme optimized for extended use
-- **Custom Font System**: Multiple fonts (Poppins, Inter, JetBrains Mono)
-- **Neon Design Language**: Electric blue, neon lime, signal orange accents
-- **Responsive Layouts**: Adaptive UI for all screen sizes
-- **Smooth Animations**: Framer Motion powered transitions
-
 ---
+
+- **Dark Mode**: Modern dark theme optimized for extended use
+
+If you want, I can also:- **Custom Font System**: Multiple fonts (Poppins, Inter, JetBrains Mono)
+
+- Generate a smaller "developer quickstart" README focused on running and testing the project locally.- **Neon Design Language**: Electric blue, neon lime, signal orange accents
+
+- Add example `.env.local.example` file.- **Responsive Layouts**: Adaptive UI for all screen sizes
+
+- Create a healthcheck and uptime suggestions for the Render WebSocket server.- **Smooth Animations**: Framer Motion powered transitions
+
+
+
+Tell me which of these you'd like next and I’ll create it.---
+
 
 ## 🛠️ Tech Stack
 

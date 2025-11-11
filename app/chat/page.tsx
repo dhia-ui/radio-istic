@@ -1,27 +1,72 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import DashboardPageLayout from "@/components/dashboard/layout"
-import { MessageCircle, Search, Users } from "lucide-react"
+import { MessageCircle, Search, Users, Loader2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { membersData } from "@/lib/members-data"
+import { api } from "@/lib/api"
+import type { Member } from "@/types/member"
 import { useChatState } from "@/components/chat/use-chat-state"
 import ProtectedRoute from "@/components/protected-route"
 import { useAuth } from "@/lib/auth-context"
 import ChatConversation from "@/components/chat/chat-conversation"
+import { useToast } from "@/hooks/use-toast"
 
 export default function ChatPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null)
+  const [members, setMembers] = useState<Member[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const { user } = useAuth()
+  const { toast } = useToast()
   const { conversations, openConversation, activeConversation, newMessage, setNewMessage, handleSendMessage } =
     useChatState()
 
+  // Fetch members from API
+  useEffect(() => {
+    const fetchMembers = async () => {
+      try {
+        const response = await api.members.getAll({})
+        const transformedMembers: Member[] = response.map((u: any) => ({
+          id: u._id,
+          name: `${u.firstName} ${u.lastName}`,
+          firstName: u.firstName,
+          lastName: u.lastName,
+          email: u.email,
+          phone: u.phone || "",
+          field: u.field,
+          year: u.year,
+          motivation: u.motivation || "",
+          projects: u.projects?.join(", ") || "",
+          skills: u.skills?.join(", ") || "",
+          status: u.status || "offline",
+          avatar: u.photo || `/avatars/${u.firstName.toLowerCase()}-${u.lastName.toLowerCase()}.png`,
+          points: u.points || 0,
+          role: u.role,
+          isBureau: u.isBureau,
+          isOnline: u.status === "online",
+        }))
+        setMembers(transformedMembers)
+      } catch (error) {
+        console.error("Failed to fetch members:", error)
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: "Impossible de charger les membres",
+        })
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchMembers()
+  }, [toast])
+
   // Filter members for search
-  const filteredMembers = membersData.filter(
+  const filteredMembers = members.filter(
     (member) =>
       member.id !== user?.id &&
       (member.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -50,7 +95,12 @@ export default function ChatPage() {
           icon: MessageCircle,
         }}
       >
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-12rem)]">
+        {isLoading ? (
+          <div className="flex items-center justify-center min-h-[400px]">
+            <Loader2 className="h-12 w-12 animate-spin text-electric-blue" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-12rem)]">
           {/* Conversations List */}
           <div className="lg:col-span-1 bg-card border border-border rounded-xl overflow-hidden flex flex-col">
             <div className="p-4 border-b border-border">
@@ -175,7 +225,7 @@ export default function ChatPage() {
                 <MessageCircle className="h-16 w-16 text-muted-foreground mb-4" />
                 <h3 className="text-xl font-display font-bold mb-2">Nouvelle conversation</h3>
                 <p className="text-muted-foreground text-center mb-6">
-                  Commencez une conversation avec {membersData.find((m) => m.id === selectedMemberId)?.firstName}
+                  Commencez une conversation avec {members.find((m) => m.id === selectedMemberId)?.firstName}
                 </p>
                 <Button className="bg-electric-blue hover:bg-electric-blue/90">Envoyer un message</Button>
               </div>
@@ -190,6 +240,7 @@ export default function ChatPage() {
             )}
           </div>
         </div>
+        )}
       </DashboardPageLayout>
     </ProtectedRoute>
   )

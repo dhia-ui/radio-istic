@@ -31,7 +31,14 @@ export const metadata: Metadata = {
   },
   description:
     "Radio Istic - The official student club of ISTIC Borj Cédria. Events, podcasts, training, and community.",
-    generator: 'v0.app'
+  generator: 'v0.app',
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.ico', sizes: 'any' }
+    ],
+    apple: '/apple-touch-icon.png',
+  },
 }
 
 export default function RootLayout({
