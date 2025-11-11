@@ -35,7 +35,7 @@ export function MobileHeader({ mockData }: MobileHeaderProps) {
         <Sheet>
           {/* Right: Notifications Menu */}
           <SheetTrigger asChild>
-            <Button variant="secondary" size="icon" className="relative">
+            <Button variant="secondary" size="icon" className="relative" suppressHydrationWarning>
               {unreadCount > 0 && (
                 <Badge className="absolute border-2 border-background -top-1 -left-2 h-5 w-5 text-xs p-0 flex items-center justify-center">
                   {unreadCount > 9 ? "9+" : unreadCount}

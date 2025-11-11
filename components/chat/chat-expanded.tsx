@@ -1,22 +1,20 @@
-"use client";
+"use client"
 
-import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import type { ChatConversation } from "@/types/chat";
-import { mockChatData } from "@/data/chat-mock";
-import ChatContact from "./chat-contact";
+import { motion } from "framer-motion"
+import { Button } from "@/components/ui/button"
+import type { ChatConversation } from "@/types/chat"
+import { useAuth } from "@/lib/auth-context"
+import ChatContact from "./chat-contact"
 
 interface ChatExpandedProps {
-  conversations: ChatConversation[];
-  onOpenConversation: (conversationId: string) => void;
-  onGoBack: () => void;
+  conversations: ChatConversation[]
+  onOpenConversation: (conversationId: string) => void
+  onGoBack: () => void
 }
 
-export default function ChatExpanded({
-  conversations,
-  onOpenConversation,
-  onGoBack,
-}: ChatExpandedProps) {
+export default function ChatExpanded({ conversations, onOpenConversation, onGoBack }: ChatExpandedProps) {
+  const { user } = useAuth()
+
   return (
     <motion.div
       key="expanded"
@@ -44,10 +42,8 @@ export default function ChatExpanded({
       {/* Conversations List */}
       <div className="flex-1 overflow-y-auto max-h-80">
         {conversations.map((conversation) => {
-          const otherUser = conversation.participants.find(
-            (p) => p.id !== mockChatData.currentUser.id
-          );
-          if (!otherUser) return null;
+          const otherUser = conversation.participants.find((p) => p.id !== user?.id)
+          if (!otherUser) return null
 
           return (
             <ChatContact

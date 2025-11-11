@@ -270,6 +270,7 @@ function SidebarTrigger({
         onClick?.(event);
         toggleSidebar();
       }}
+      suppressHydrationWarning
       {...props}
     >
       <LayoutLeftIcon className="size-4" />

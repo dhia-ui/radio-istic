@@ -19,11 +19,67 @@ import {
   UserPlus,
   Mail,
   Activity,
+  Loader2,
 } from "lucide-react"
-import { members } from "@/lib/members-data"
+import { api } from "@/lib/api"
+import type { Member } from "@/types/member"
+import { useEffect, useState } from "react"
+import { useToast } from "@/hooks/use-toast"
 
 export default function BureauDashboard() {
   const { user } = useAuth()
+  const { toast } = useToast()
+  const [members, setMembers] = useState<Member[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  // Fetch members from API
+  useEffect(() => {
+    const fetchMembers = async () => {
+      try {
+        const response = await api.members.getAll({})
+        const transformedMembers: Member[] = response.map((u: any) => ({
+          id: u._id,
+          name: `${u.firstName} ${u.lastName}`,
+          firstName: u.firstName,
+          lastName: u.lastName,
+          email: u.email,
+          phone: u.phone || "",
+          field: u.field,
+          year: u.year,
+          motivation: u.motivation || "",
+          projects: u.projects?.join(", ") || "",
+          skills: u.skills?.join(", ") || "",
+          status: u.status || "offline",
+          avatar: u.photo || `/avatars/${u.firstName.toLowerCase()}-${u.lastName.toLowerCase()}.png`,
+          points: u.points || 0,
+          role: u.role,
+          isBureau: u.isBureau,
+        }))
+        setMembers(transformedMembers)
+      } catch (error) {
+        console.error("Failed to fetch members:", error)
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: "Impossible de charger les membres",
+        })
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchMembers()
+  }, [toast])
+
+  if (isLoading) {
+    return (
+      <ProtectedRoute>
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <Loader2 className="h-12 w-12 animate-spin text-electric-blue" />
+        </div>
+      </ProtectedRoute>
+    )
+  }
 
   // Calculate statistics
   const totalMembers = members.length

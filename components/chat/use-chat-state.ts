@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import type { ChatState, ChatMessage, ChatConversation } from "@/types/chat";
-import { mockChatData } from "@/data/chat-mock";
 
 type ChatComponentState = {
   state: ChatState;
@@ -13,10 +12,15 @@ interface ChatStore {
   conversations: ChatConversation[];
   newMessage: string;
   replyingToId?: string;
+  currentUserId?: string;
 
   // Actions
   setChatState: (state: ChatComponentState) => void;
   setConversations: (conversations: ChatConversation[]) => void;
+  setCurrentUserId: (userId: string) => void;
+  updateConversationMessages: (conversationId: string, messages: ChatMessage[]) => void;
+  addMessage: (conversationId: string, message: ChatMessage) => void;
+  updateMessageStatus: (messageId: string, status: "sending" | "sent" | "delivered" | "read") => void;
   setNewMessage: (message: string) => void;
   setReplyingTo: (messageId?: string) => void;
   handleSendMessage: () => { message: ChatMessage; conversationId: string } | null;
@@ -30,32 +34,74 @@ const chatStore = create<ChatStore>((set, get) => ({
   chatState: {
     state: "collapsed",
   },
-  conversations: mockChatData.conversations,
+  conversations: [],
   newMessage: "",
   replyingToId: undefined,
+  currentUserId: undefined,
 
   // Actions
   setChatState: (chatState) => set({ chatState }),
 
   setConversations: (conversations) => set({ conversations }),
 
+  setCurrentUserId: (userId) => set({ currentUserId: userId }),
+
+  updateConversationMessages: (conversationId, messages) => {
+    const { conversations } = get();
+    const updatedConversations = conversations.map((conv) =>
+      conv.id === conversationId
+        ? {
+            ...conv,
+            messages,
+            lastMessage: messages.length > 0 ? messages[messages.length - 1] : conv.lastMessage,
+          }
+        : conv
+    );
+    set({ conversations: updatedConversations });
+  },
+
+  addMessage: (conversationId, message) => {
+    const { conversations } = get();
+    const updatedConversations = conversations.map((conv) =>
+      conv.id === conversationId
+        ? {
+            ...conv,
+            messages: [...conv.messages, message],
+            lastMessage: message,
+          }
+        : conv
+    );
+    set({ conversations: updatedConversations });
+  },
+
+  updateMessageStatus: (messageId, status) => {
+    const { conversations } = get();
+    const updatedConversations = conversations.map((conv) => ({
+      ...conv,
+      messages: conv.messages.map((msg) =>
+        msg.id === messageId ? { ...msg, status } : msg
+      ),
+    }));
+    set({ conversations: updatedConversations });
+  },
+
   setNewMessage: (newMessage) => set({ newMessage }),
 
   setReplyingTo: (messageId) => set({ replyingToId: messageId }),
 
   handleSendMessage: () => {
-    const { newMessage, conversations, chatState, replyingToId } = get();
+    const { newMessage, conversations, chatState, replyingToId, currentUserId } = get();
     const activeConv = conversations.find(
       (conv) => conv.id === chatState.activeConversation
     );
 
-    if (!newMessage.trim() || !activeConv) return null;
+    if (!newMessage.trim() || !activeConv || !currentUserId) return null;
 
     const message: ChatMessage = {
       id: `msg-${Date.now()}`,
       content: newMessage.trim(),
       timestamp: new Date().toISOString(),
-      senderId: mockChatData.currentUser.id,
+      senderId: currentUserId,
       isFromCurrentUser: true,
       status: "sending",
       replyTo: replyingToId,
@@ -76,22 +122,6 @@ const chatStore = create<ChatStore>((set, get) => ({
       newMessage: "",
       replyingToId: undefined,
     });
-
-    // Progress message status to 'sent' after a short delay (simulated ack)
-    setTimeout(() => {
-      const state = get();
-      const updated = state.conversations.map((conv) =>
-        conv.id === activeConv.id
-          ? {
-              ...conv,
-              messages: conv.messages.map((m) =>
-                m.id === message.id ? { ...m, status: "sent" as const } : m
-              ),
-            }
-          : conv
-      );
-      set({ conversations: updated });
-    }, 600);
 
     return { message, conversationId: activeConv.id };
   },
@@ -138,6 +168,10 @@ export const useChatState = () => {
   const newMessage = chatStore((state) => state.newMessage);
   const setChatState = chatStore((state) => state.setChatState);
   const setConversations = chatStore((state) => state.setConversations);
+  const setCurrentUserId = chatStore((state) => state.setCurrentUserId);
+  const updateConversationMessages = chatStore((state) => state.updateConversationMessages);
+  const addMessage = chatStore((state) => state.addMessage);
+  const updateMessageStatus = chatStore((state) => state.updateMessageStatus);
   const setNewMessage = chatStore((state) => state.setNewMessage);
   const replyingToId = chatStore((state) => state.replyingToId);
   const setReplyingTo = chatStore((state) => state.setReplyingTo);
@@ -165,6 +199,10 @@ export const useChatState = () => {
     activeConversation,
     setChatState,
     setConversations,
+    setCurrentUserId,
+    updateConversationMessages,
+    addMessage,
+    updateMessageStatus,
     setNewMessage,
     setReplyingTo,
     handleSendMessage,

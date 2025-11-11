@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Mail, Phone, Award, Briefcase, Lightbulb, MessageSquare } from "lucide-react"
-import type { Member } from "@/lib/members-data"
+import type { Member } from "@/types/member"
 import { useRouter } from "next/navigation"
 
 type MemberProfileModalProps = {

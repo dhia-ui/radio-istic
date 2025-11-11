@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
 import { useChatState } from "./use-chat-state"
-import { mockChatData } from "@/data/chat-mock"
+import { useAuth } from "@/lib/auth-context"
 import { ChatStatusIndicator } from "./chat-status-indicator"
 import PlusIcon from "../icons/plus"
 import MinusIcon from "../icons/minus"
@@ -36,10 +36,11 @@ export function ChatHeader({
   onKeyDown,
 }: ChatHeaderProps) {
   const { chatState, totalUnreadCount, activeConversation, goBack, toggleExpanded } = useChatState()
+  const { user } = useAuth()
 
   const hasNewMessages = totalUnreadCount > 0
   const shouldHighlightUnreadMessages = variant === "mobile" ? false : chatState.state === "collapsed" && hasNewMessages
-  const otherUser = activeConversation?.participants.find((p) => p.id !== mockChatData.currentUser.id)
+  const otherUser = activeConversation?.participants.find((p) => p.id !== user?.id)
 
   const handleClick = () => {
     if (onClick) {
