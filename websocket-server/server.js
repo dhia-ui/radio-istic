@@ -17,19 +17,23 @@ const httpServer = createServer(app);
 connectDB();
 
 // Parse allowed origins from env or use defaults
-const allowedOrigins = process.env.ALLOWED_ORIGINS 
-  ? process.env.ALLOWED_ORIGINS.split(',')
-  : [
-      'https://radioistic.netlify.app',
-      'http://localhost:3000',
-      'http://localhost:3001'
-    ];
+const allowedOrigins = [
+  'https://radioistic.netlify.app',
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'http://localhost:3001'
+];
 
 // CORS configuration
-app.use(cors({
+const corsOptions = {
   origin: allowedOrigins,
-  credentials: true
-}));
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 app.use(express.json());
 
@@ -38,9 +42,12 @@ const io = new Server(httpServer, {
   cors: {
     origin: allowedOrigins,
     methods: ['GET', 'POST'],
-    credentials: true
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization']
   },
-  transports: ['websocket', 'polling']
+  transports: ['websocket', 'polling'],
+  pingTimeout: 60000,
+  pingInterval: 25000
 });
 
 // Store connected users
