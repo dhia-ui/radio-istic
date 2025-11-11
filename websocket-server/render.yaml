@@ -9,3 +9,11 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: PORT
+        value: 3001
+      - key: MONGODB_URI
+        sync: false  # Set in Render dashboard (same as backend-api)
+      - key: ALLOWED_ORIGINS
+        value: https://radioistic.netlify.app,http://localhost:3000
+    healthCheckPath: /health
+    autoDeploy: true

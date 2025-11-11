@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import RadioIsticLogo from "@/components/radio-istic-logo"
 import Link from "next/link"
 import { Loader2, AlertCircle } from "lucide-react"
@@ -14,17 +15,24 @@ import { useToast } from "@/hooks/use-toast"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
 export default function SignupPage() {
-  const [name, setName] = useState("")
+  const [firstName, setFirstName] = useState("")
+  const [lastName, setLastName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
+  const [field, setField] = useState("")
+  const [year, setYear] = useState("")
+  const [phone, setPhone] = useState("")
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<{
-    name?: string
+    firstName?: string
+    lastName?: string
     email?: string
     password?: string
     confirmPassword?: string
+    field?: string
+    year?: string
   }>({})
   const { signup } = useAuth()
   const router = useRouter()
@@ -32,17 +40,27 @@ export default function SignupPage() {
 
   const validateForm = () => {
     const errors: {
-      name?: string
+      firstName?: string
+      lastName?: string
       email?: string
       password?: string
       confirmPassword?: string
+      field?: string
+      year?: string
     } = {}
 
-    // Name validation
-    if (!name) {
-      errors.name = "Le nom est requis"
-    } else if (name.length < 2) {
-      errors.name = "Le nom doit contenir au moins 2 caractères"
+    // First name validation
+    if (!firstName) {
+      errors.firstName = "Le prénom est requis"
+    } else if (firstName.length < 2) {
+      errors.firstName = "Le prénom doit contenir au moins 2 caractères"
+    }
+
+    // Last name validation
+    if (!lastName) {
+      errors.lastName = "Le nom est requis"
+    } else if (lastName.length < 2) {
+      errors.lastName = "Le nom doit contenir au moins 2 caractères"
     }
 
     // Email validation
@@ -50,6 +68,16 @@ export default function SignupPage() {
       errors.email = "L'email est requis"
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       errors.email = "Email invalide"
+    }
+
+    // Field validation
+    if (!field) {
+      errors.field = "La filière est requise"
+    }
+
+    // Year validation
+    if (!year) {
+      errors.year = "L'année est requise"
     }
 
     // Password validation
@@ -83,7 +111,7 @@ export default function SignupPage() {
     setIsLoading(true)
 
     try {
-      await signup(name, email, password)
+      await signup(firstName, lastName, email, password, field, parseInt(year), phone || undefined)
       toast({
         title: "Inscription réussie!",
         description: "Bienvenue sur Radio Istic",
@@ -121,23 +149,44 @@ export default function SignupPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Nom complet</Label>
-              <Input
-                id="name"
-                type="text"
-                placeholder="Votre nom"
-                value={name}
-                onChange={(e) => {
-                  setName(e.target.value)
-                  setFieldErrors({ ...fieldErrors, name: undefined })
-                }}
-                className={`bg-background ${fieldErrors.name ? "border-destructive" : ""}`}
-                disabled={isLoading}
-              />
-              {fieldErrors.name && (
-                <p className="text-sm text-destructive">{fieldErrors.name}</p>
-              )}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="firstName">Prénom</Label>
+                <Input
+                  id="firstName"
+                  type="text"
+                  placeholder="Votre prénom"
+                  value={firstName}
+                  onChange={(e) => {
+                    setFirstName(e.target.value)
+                    setFieldErrors({ ...fieldErrors, firstName: undefined })
+                  }}
+                  className={`bg-background ${fieldErrors.firstName ? "border-destructive" : ""}`}
+                  disabled={isLoading}
+                />
+                {fieldErrors.firstName && (
+                  <p className="text-sm text-destructive">{fieldErrors.firstName}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Nom</Label>
+                <Input
+                  id="lastName"
+                  type="text"
+                  placeholder="Votre nom"
+                  value={lastName}
+                  onChange={(e) => {
+                    setLastName(e.target.value)
+                    setFieldErrors({ ...fieldErrors, lastName: undefined })
+                  }}
+                  className={`bg-background ${fieldErrors.lastName ? "border-destructive" : ""}`}
+                  disabled={isLoading}
+                />
+                {fieldErrors.lastName && (
+                  <p className="text-sm text-destructive">{fieldErrors.lastName}</p>
+                )}
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -157,6 +206,64 @@ export default function SignupPage() {
               {fieldErrors.email && (
                 <p className="text-sm text-destructive">{fieldErrors.email}</p>
               )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="phone">Téléphone (optionnel)</Label>
+              <Input
+                id="phone"
+                type="tel"
+                placeholder="+216 XX XXX XXX"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="bg-background"
+                disabled={isLoading}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="field">Filière</Label>
+                <Select value={field} onValueChange={(value) => {
+                  setField(value)
+                  setFieldErrors({ ...fieldErrors, field: undefined })
+                }} disabled={isLoading}>
+                  <SelectTrigger className={`bg-background ${fieldErrors.field ? "border-destructive" : ""}`}>
+                    <SelectValue placeholder="Choisir" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="GLSI">GLSI</SelectItem>
+                    <SelectItem value="IRS">IRS</SelectItem>
+                    <SelectItem value="LISI">LISI</SelectItem>
+                    <SelectItem value="LAI">LAI</SelectItem>
+                    <SelectItem value="IOT">IOT</SelectItem>
+                    <SelectItem value="LT">LT</SelectItem>
+                  </SelectContent>
+                </Select>
+                {fieldErrors.field && (
+                  <p className="text-sm text-destructive">{fieldErrors.field}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="year">Année</Label>
+                <Select value={year} onValueChange={(value) => {
+                  setYear(value)
+                  setFieldErrors({ ...fieldErrors, year: undefined })
+                }} disabled={isLoading}>
+                  <SelectTrigger className={`bg-background ${fieldErrors.year ? "border-destructive" : ""}`}>
+                    <SelectValue placeholder="Choisir" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1ère année</SelectItem>
+                    <SelectItem value="2">2ème année</SelectItem>
+                    <SelectItem value="3">3ème année</SelectItem>
+                  </SelectContent>
+                </Select>
+                {fieldErrors.year && (
+                  <p className="text-sm text-destructive">{fieldErrors.year}</p>
+                )}
+              </div>
             </div>
 
             <div className="space-y-2">

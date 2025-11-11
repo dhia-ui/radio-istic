@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: radio-istic-api
+    env: node
+    region: frankfurt  # or your preferred region
+    plan: free  # or starter/standard
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: MONGODB_URI
+        sync: false  # Set in Render dashboard
+      - key: JWT_SECRET
+        generateValue: true  # Auto-generate secure secret
+      - key: JWT_EXPIRE
+        value: 7d
+      - key: FRONTEND_URL
+        value: https://radioistic.netlify.app
+      - key: WEBSOCKET_URL
+        value: https://radio-istic.onrender.com
+    healthCheckPath: /api/health
+    autoDeploy: true  # Auto-deploy on git push

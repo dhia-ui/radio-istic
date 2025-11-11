@@ -1,19 +1,82 @@
 "use client"
 
 import DashboardPageLayout from "@/components/dashboard/layout"
-import { User, Mail, Phone, GraduationCap, Trophy, MessageCircle, ArrowLeft } from "lucide-react"
+import { User, Mail, Phone, GraduationCap, Trophy, MessageCircle, ArrowLeft, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { membersData } from "@/lib/members-data"
+import { api } from "@/lib/api"
+import type { Member } from "@/types/member"
 import Link from "next/link"
 import ProtectedRoute from "@/components/protected-route"
 import { notFound, useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import { useToast } from "@/hooks/use-toast"
 
 export default function MemberProfilePage({ params }: { params: { id: string } }) {
   const { id } = params
-  const member = membersData.find((m) => m.id === id)
+  const [member, setMember] = useState<Member | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const { toast } = useToast()
   const router = useRouter()
+
+  // Fetch member from API
+  useEffect(() => {
+    const fetchMember = async () => {
+      try {
+        const response = await api.members.getById(id)
+        const transformedMember: Member = {
+          id: response._id,
+          name: `${response.firstName} ${response.lastName}`,
+          firstName: response.firstName,
+          lastName: response.lastName,
+          email: response.email,
+          phone: response.phone || "",
+          field: response.field,
+          year: response.year,
+          motivation: response.motivation || "",
+          projects: response.projects?.join(", ") || "",
+          skills: response.skills?.join(", ") || "",
+          status: response.status || "offline",
+          avatar: response.photo || `/avatars/${response.firstName.toLowerCase()}-${response.lastName.toLowerCase()}.png`,
+          points: response.points || 0,
+          role: response.role,
+          isBureau: response.isBureau,
+          isOnline: response.status === "online",
+        }
+        setMember(transformedMember)
+      } catch (error) {
+        console.error("Failed to fetch member:", error)
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: "Impossible de charger le profil du membre",
+        })
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchMember()
+  }, [id, toast])
+
+  if (isLoading) {
+    return (
+      <ProtectedRoute>
+        <DashboardPageLayout
+          header={{
+            title: "Profil du Membre",
+            description: "Informations détaillées",
+            icon: User,
+          }}
+        >
+          <div className="flex items-center justify-center min-h-[400px]">
+            <Loader2 className="h-12 w-12 animate-spin text-electric-blue" />
+          </div>
+        </DashboardPageLayout>
+      </ProtectedRoute>
+    )
+  }
 
   if (!member) {
     notFound()

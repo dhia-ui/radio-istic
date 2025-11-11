@@ -1,11 +1,76 @@
+"use client"
+
 import DashboardPageLayout from "@/components/dashboard/layout"
-import { Info, Users, Target, Heart } from "lucide-react"
+import { Info, Users, Target, Heart, Loader2 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import RadioIsticLogo from "@/components/radio-istic-logo"
-import { bureauMembers } from "@/lib/members-data"
+import { api } from "@/lib/api"
+import type { Member } from "@/types/member"
+import { useEffect, useState } from "react"
+import { useToast } from "@/hooks/use-toast"
 
 export default function AboutPage() {
+  const { toast } = useToast()
+  const [bureauMembers, setBureauMembers] = useState<Member[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  // Fetch bureau members from API
+  useEffect(() => {
+    const fetchBureauMembers = async () => {
+      try {
+        const response = await api.members.getAll({})
+        const transformedMembers: Member[] = response
+          .filter((u: any) => u.role && u.role !== "Member")
+          .map((u: any) => ({
+            id: u._id,
+            name: `${u.firstName} ${u.lastName}`,
+            firstName: u.firstName,
+            lastName: u.lastName,
+            email: u.email,
+            phone: u.phone || "",
+            field: u.field,
+            year: u.year,
+            motivation: u.motivation || "",
+            projects: u.projects?.join(", ") || "",
+            skills: u.skills?.join(", ") || "",
+            status: u.status || "offline",
+            avatar: u.photo || `/avatars/${u.firstName.toLowerCase()}-${u.lastName.toLowerCase()}.png`,
+            points: u.points || 0,
+            role: u.role,
+            isBureau: u.isBureau,
+          }))
+        setBureauMembers(transformedMembers)
+      } catch (error) {
+        console.error("Failed to fetch bureau members:", error)
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: "Impossible de charger les membres du bureau",
+        })
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchBureauMembers()
+  }, [toast])
+
+  if (isLoading) {
+    return (
+      <DashboardPageLayout
+        header={{
+          title: "À propos",
+          description: "Découvrez Radio Istic",
+          icon: Info,
+        }}
+      >
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="h-12 w-12 animate-spin text-electric-blue" />
+        </div>
+      </DashboardPageLayout>
+    )
+  }
   return (
     <DashboardPageLayout
       header={{
