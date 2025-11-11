@@ -19,8 +19,8 @@ const members = [
     points: 1500,
     avatar: '/avatars/aziz-mehri.png',
     motivation: 'Passionate about leading Radio ISTIC to new heights',
-    projects: ['Radio Management', 'Event Organization'],
-    skills: ['Leadership', 'Communication', 'Project Management'],
+    projects: 'Radio Management, Event Organization',
+    skills: 'Leadership, Communication, Project Management',
     isActive: true,
     status: 'offline'
   },
@@ -37,8 +37,8 @@ const members = [
     points: 1400,
     avatar: '/avatars/eya-ssekk.png',
     motivation: 'Dedicated to managing operations and community engagement',
-    projects: ['Member Relations', 'Social Media'],
-    skills: ['Management', 'Marketing', 'Team Building'],
+    projects: 'Member Relations, Social Media',
+    skills: 'Management, Marketing, Team Building',
     isActive: true,
     status: 'offline'
   },
@@ -50,13 +50,13 @@ const members = [
     phone: '+216 20 345 678',
     field: 'LISI',
     year: 2,
-    role: 'treasurer',
+    role: 'sponsor-manager',
     isBureau: true,
     points: 1200,
     avatar: '/avatars/default-male.png',
     motivation: 'Managing finances and ensuring sustainability',
-    projects: ['Budget Management', 'Sponsorship'],
-    skills: ['Finance', 'Excel', 'Planning'],
+    projects: 'Budget Management, Sponsorship',
+    skills: 'Finance, Excel, Planning',
     isActive: true,
     status: 'offline'
   },
@@ -73,8 +73,8 @@ const members = [
     points: 1100,
     avatar: '/avatars/default-female.png',
     motivation: 'Organizing and documenting club activities',
-    projects: ['Documentation', 'Meeting Minutes'],
-    skills: ['Organization', 'Writing', 'Time Management'],
+    projects: 'Documentation, Meeting Minutes',
+    skills: 'Organization, Writing, Time Management',
     isActive: true,
     status: 'offline'
   },
@@ -86,13 +86,13 @@ const members = [
     phone: '+216 20 567 890',
     field: 'IOT',
     year: 2,
-    role: 'technical-lead',
+    role: 'media-responsable',
     isBureau: true,
     points: 1300,
     avatar: '/avatars/default-male.png',
     motivation: 'Building technical infrastructure for the club',
-    projects: ['Website', 'Audio Equipment'],
-    skills: ['Programming', 'Electronics', 'Problem Solving'],
+    projects: 'Website, Audio Equipment',
+    skills: 'Programming, Electronics, Problem Solving',
     isActive: true,
     status: 'offline'
   },
@@ -110,8 +110,8 @@ const members = [
     points: 500,
     avatar: '/avatars/default-female.png',
     motivation: 'Excited to be part of Radio ISTIC',
-    projects: [],
-    skills: ['Writing', 'Creativity'],
+    projects: '',
+    skills: 'Writing, Creativity',
     isActive: true,
     status: 'offline'
   },
@@ -128,8 +128,8 @@ const members = [
     points: 450,
     avatar: '/avatars/default-male.png',
     motivation: 'Passionate about radio broadcasting',
-    projects: [],
-    skills: ['Voice', 'Audio Editing'],
+    projects: '',
+    skills: 'Voice, Audio Editing',
     isActive: true,
     status: 'offline'
   },
@@ -146,8 +146,8 @@ const members = [
     points: 400,
     avatar: '/avatars/default-female.png',
     motivation: 'Learning about media and communication',
-    projects: [],
-    skills: ['Social Media', 'Design'],
+    projects: '',
+    skills: 'Social Media, Design',
     isActive: true,
     status: 'offline'
   }
@@ -158,58 +158,54 @@ const events = [
   {
     title: 'Radio ISTIC Launch Party 2024',
     description: 'Celebrating the launch of our new radio station with live music, games, and special guests!',
-    date: new Date('2024-12-15T18:00:00Z'),
+    startDate: new Date('2024-12-15T18:00:00Z'),
     location: 'ISTIC Main Auditorium',
     image: '/events/launch-party.jpg',
-    category: 'social',
+    category: 'Social Events',
     maxParticipants: 200,
     registrationDeadline: new Date('2024-12-10T23:59:59Z'),
-    status: 'upcoming',
-    organizers: [], // Will be populated with user IDs
-    participants: [],
-    isPublic: true
+    status: 'published',
+    type: 'public',
+    pointsReward: 50
   },
   {
     title: 'Podcast Recording Workshop',
     description: 'Learn the art of podcast recording, editing, and publishing. Hands-on workshop with professional equipment.',
-    date: new Date('2024-12-01T14:00:00Z'),
+    startDate: new Date('2024-12-01T14:00:00Z'),
     location: 'Radio ISTIC Studio',
     image: '/events/workshop.jpg',
-    category: 'workshop',
+    category: 'Training',
     maxParticipants: 20,
     registrationDeadline: new Date('2024-11-28T23:59:59Z'),
-    status: 'upcoming',
-    organizers: [],
-    participants: [],
-    isPublic: true
+    status: 'published',
+    type: 'members-only',
+    pointsReward: 100
   },
   {
     title: 'Annual Radio Competition',
     description: 'Compete with other members to create the best radio show! Prizes for top 3 winners.',
-    date: new Date('2025-01-20T10:00:00Z'),
+    startDate: new Date('2025-01-20T10:00:00Z'),
     location: 'ISTIC Campus',
     image: '/events/competition.jpg',
-    category: 'competition',
+    category: 'Sport',
     maxParticipants: 50,
     registrationDeadline: new Date('2025-01-15T23:59:59Z'),
-    status: 'upcoming',
-    organizers: [],
-    participants: [],
-    isPublic: true
+    status: 'published',
+    type: 'members-only',
+    pointsReward: 200
   },
   {
     title: 'Welcome Freshman Event',
     description: 'Welcome new students to ISTIC! Meet the team, learn about our club, and enjoy free snacks.',
-    date: new Date('2024-09-25T16:00:00Z'),
+    startDate: new Date('2024-09-25T16:00:00Z'),
     location: 'ISTIC Courtyard',
     image: '/events/welcome.jpg',
-    category: 'social',
+    category: 'Social Events',
     maxParticipants: 150,
     registrationDeadline: new Date('2024-09-20T23:59:59Z'),
     status: 'completed',
-    organizers: [],
-    participants: [],
-    isPublic: true
+    type: 'public',
+    pointsReward: 25
   }
 ];
 
@@ -232,17 +228,17 @@ async function seedDatabase() {
     
     // Get bureau member IDs for event organizers
     const bureauMembers = createdUsers.filter(u => u.isBureau);
-    const organizerIds = bureauMembers.slice(0, 2).map(u => u._id);
+    const organizerId = bureauMembers[0]._id; // Use president as organizer
     
-    // Add organizers to events
-    const eventsWithOrganizers = events.map(event => ({
+    // Add organizer to events
+    const eventsWithOrganizer = events.map(event => ({
       ...event,
-      organizers: organizerIds
+      organizer: organizerId
     }));
     
     // Create events
     console.log('📅 Creating events...');
-    const createdEvents = await Event.create(eventsWithOrganizers);
+    const createdEvents = await Event.create(eventsWithOrganizer);
     console.log(`✅ Created ${createdEvents.length} events`);
     
     console.log('\n✅ Database seeded successfully!');
