@@ -1,19 +1,19 @@
 services:
   - type: web
     name: radio-istic-websocket
-    runtime: node
-    region: frankfurt
+    env: node
+    region: frankfurt  # Change to your preferred region
     plan: free
+    rootDir: websocket-server
     buildCommand: npm install
-    startCommand: node server.js
+    startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 3001
+        value: 10000  # Render uses PORT, not SOCKET_PORT
       - key: MONGODB_URI
-        sync: false  # Set in Render dashboard (same as backend-api)
-      - key: ALLOWED_ORIGINS
-        value: https://radioistic.netlify.app,http://localhost:3000
-    healthCheckPath: /health
+        sync: false  # IMPORTANT: Set this manually in Render dashboard (same as backend)
+      - key: CORS_ORIGIN
+        sync: false  # Will be your frontend URL from Render
     autoDeploy: true
