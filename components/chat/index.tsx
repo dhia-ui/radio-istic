@@ -37,6 +37,7 @@ export default function Chat() {
   const { toast } = useToast();
 
   const isExpanded = chatState.state !== "collapsed";
+  const processedMessageIds = useRef<Set<string>>(new Set());
 
   // Set current user ID
   useEffect(() => {
@@ -45,9 +46,15 @@ export default function Chat() {
     }
   }, [user?.id, setCurrentUserId]);
 
-  // Load conversation history when it arrives from WebSocket
+  // Load conversation history when it arrives from WebSocket (only once per conversation)
+  const loadedHistories = useRef<Set<string>>(new Set());
   useEffect(() => {
     if (activeConversation && conversationHistories[activeConversation.id]) {
+      // Only load history once per conversation
+      if (loadedHistories.current.has(activeConversation.id)) {
+        return;
+      }
+      
       const history = conversationHistories[activeConversation.id];
       const chatMessages: ChatMessage[] = history.map((msg) => ({
         id: msg.id,
@@ -57,13 +64,23 @@ export default function Chat() {
         isFromCurrentUser: msg.senderId === user?.id,
         status: msg.status,
       }));
+      
       updateConversationMessages(activeConversation.id, chatMessages);
+      loadedHistories.current.add(activeConversation.id);
+      
+      // Mark these messages as processed to avoid duplicates
+      history.forEach(msg => processedMessageIds.current.add(msg.id));
     }
   }, [conversationHistories, activeConversation?.id, user?.id, updateConversationMessages]);
 
-  // Handle incoming WebSocket messages
+  // Handle incoming WebSocket messages (only new ones)
   useEffect(() => {
     wsMessages.forEach((wsMsg) => {
+      // Skip if we've already processed this message
+      if (processedMessageIds.current.has(wsMsg.id)) {
+        return;
+      }
+      
       const chatMsg: ChatMessage = {
         id: wsMsg.id,
         content: wsMsg.content,
@@ -75,6 +92,9 @@ export default function Chat() {
       
       // Add message to the appropriate conversation
       addMessage(wsMsg.conversationId, chatMsg);
+      
+      // Mark as processed
+      processedMessageIds.current.add(wsMsg.id);
     });
   }, [wsMessages, user?.id, addMessage]);
 

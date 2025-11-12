@@ -26,7 +26,7 @@ export function SidebarHeader() {
   return (
     <div className="flex flex-col gap-2 p-4 border-b border-border">
       <div className="flex items-center justify-center">
-        <RadioIsticLogo width={160} height={50} />
+        <RadioIsticLogo width={220} height={70} />
       </div>
       <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
         <MapPin className="h-3 w-3 text-electric-blue" />

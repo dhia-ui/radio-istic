@@ -1,0 +1,43 @@
+🎵 QUICK AUDIO SETUP FOR HIDDEN TALENT
+========================================
+
+OPTION 1: Download Instagram Reel Audio (Easiest)
+--------------------------------------------------
+1. Go to: https://igram.world/
+2. Paste Instagram URL: https://www.instagram.com/reel/DP6wpTdDHp5/
+3. Click "Download"
+4. Choose "Download Audio (MP3)"
+5. Save the file as "hidden-talent.mp3"
+6. Move it to: C:\Users\dhiaguetiti\Desktop\dashboard\public\audio\hidden-talent.mp3
+
+OPTION 2: Use Any MP3 File You Have
+------------------------------------
+If you already have an audio file:
+1. Rename it to: hidden-talent.mp3
+2. Copy it to: C:\Users\dhiaguetiti\Desktop\dashboard\public\audio\
+3. Done!
+
+OPTION 3: Use Online Converter
+-------------------------------
+1. Download the Instagram video
+2. Go to: https://cloudconvert.com/mp4-to-mp3
+3. Upload the video file
+4. Convert to MP3
+5. Download and save as hidden-talent.mp3
+6. Move to: public/audio/
+
+THAT'S IT! 
+==========
+Once you add the file, the audio player will automatically work on:
+- The main media page (http://localhost:3000/media)
+- The popup dialog when clicking the episode
+
+The player includes:
+✓ Play/Pause button
+✓ Volume control
+✓ Seek bar (progress)
+✓ Download option
+✓ Mobile-friendly
+✓ Beautiful styling with your theme
+
+NO CODE CHANGES NEEDED - Just add the file!

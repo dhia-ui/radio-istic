@@ -64,28 +64,17 @@ export const useAvatarUpload = (): UseAvatarUploadReturn => {
 
         setProgress(50)
 
-        // Create FormData
-        const formData = new FormData()
-        formData.append('avatar', compressedFile)
-        formData.append('userId', user.id)
+        // Import api dynamically to avoid circular dependency
+        const { api } = await import('@/lib/api')
 
         setProgress(60)
 
-        // Upload to API
-        const response = await fetch('/api/user/avatar', {
-          method: 'POST',
-          body: formData,
-        })
-
-        if (!response.ok) {
-          const errorData = await response.json()
-          throw new Error(errorData.error || 'Upload failed')
-        }
+        // Upload to backend API
+        const response = await api.auth.uploadAvatar(compressedFile)
 
         setProgress(90)
 
-        const data = await response.json()
-        const avatarUrl = data.avatarUrl
+        const avatarUrl = response.avatarUrl
 
         setProgress(100)
         setUploading(false)
@@ -116,20 +105,14 @@ export const useAvatarUpload = (): UseAvatarUploadReturn => {
       setError(null)
 
       try {
-        const response = await fetch('/api/user/avatar', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            userId: user.id,
-            presetAvatar: avatarUrl,
-          }),
-        })
+        // Import api dynamically to avoid circular dependency
+        const { api } = await import('@/lib/api')
 
-        if (!response.ok) {
-          const errorData = await response.json()
-          throw new Error(errorData.error || 'Failed to update avatar')
+        // Update profile with preset avatar
+        const response = await api.auth.updateProfile({ avatar: avatarUrl })
+
+        if (!response.success) {
+          throw new Error('Failed to update avatar')
         }
 
         setUploading(false)

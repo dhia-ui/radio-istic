@@ -44,7 +44,7 @@ export default function ChatPreview({ conversation, onOpenConversation }: ChatPr
             <p className="text-xs text-foreground/50">{otherUser.username}</p>
           </div>
           <span className="text-xs text-foreground/40">
-            {formatDate(conversation.lastMessage.timestamp)}
+            {conversation.lastMessage ? formatDate(conversation.lastMessage.timestamp) : ""}
           </span>
         </div>
         <p
@@ -53,7 +53,7 @@ export default function ChatPreview({ conversation, onOpenConversation }: ChatPr
             conversation.unreadCount > 0 && "font-bold text-foreground"
           )}
         >
-          {conversation.lastMessage.content}
+          {conversation.lastMessage?.content ?? ""}
         </p>
       </div>
     </div>

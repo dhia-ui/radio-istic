@@ -58,7 +58,7 @@ export function DashboardSidebar() {
       <SidebarHeader className="border-b border-border py-6">
         <div className="flex items-center justify-between px-4">
           <Link href="/" className="flex items-center justify-center">
-            <RadioIsticLogo width={160} height={50} />
+            <RadioIsticLogo width={220} height={70} />
           </Link>
           <button
             onClick={toggleTheme}

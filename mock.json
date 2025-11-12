@@ -177,46 +177,46 @@
   "notifications": [
     {
       "id": "notif-1",
-      "title": "PAYMENT RECEIVED",
-      "message": "Your payment to Rampant Studio has been processed successfully.",
-      "timestamp": "2024-07-10T13:39:00Z",
+      "title": "NOUVEL ÉVÉNEMENT",
+      "message": "Tournoi de Ping-Pong ce weekend - Inscrivez-vous maintenant!",
+      "timestamp": "2025-11-10T13:39:00Z",
       "type": "success",
+      "read": false,
+      "priority": "high"
+    },
+    {
+      "id": "notif-2",
+      "title": "NOUVEAU PODCAST",
+      "message": "Épisode 5 disponible - Interview exclusive avec un expert en cybersécurité",
+      "timestamp": "2025-11-09T15:20:00Z",
+      "type": "info",
       "read": false,
       "priority": "medium"
     },
     {
-      "id": "notif-2",
-      "title": "INTRO: JOYCO STUDIO AND V0",
-      "message": "About us - We're a healthcare company focused on accessibility and innovation.",
-      "timestamp": "2024-07-10T13:35:00Z",
-      "type": "info",
-      "read": false,
-      "priority": "low"
-    },
-    {
       "id": "notif-3",
-      "title": "SYSTEM UPDATE",
-      "message": "Security patches have been applied to all guard bots.",
-      "timestamp": "2024-07-10T12:15:00Z",
-      "type": "info",
+      "title": "INSCRIPTION CONFIRMÉE",
+      "message": "Votre inscription au voyage à Ain Draham a été confirmée",
+      "timestamp": "2025-11-08T10:15:00Z",
+      "type": "success",
       "read": true,
       "priority": "medium"
     },
     {
       "id": "notif-4",
-      "title": "FIREWALL ALERT",
-      "message": "Blocked 247 suspicious connection attempts in the last hour.",
-      "timestamp": "2024-07-10T11:45:00Z",
-      "type": "warning",
+      "title": "NOUVELLE FORMATION",
+      "message": "Atelier Photoshop avancé - Places limitées disponibles",
+      "timestamp": "2025-11-07T11:45:00Z",
+      "type": "info",
       "read": true,
-      "priority": "high"
+      "priority": "low"
     }
   ],
   "widgetData": {
-    "location": "Buenos Aires, Argentina",
-    "timezone": "UTC-3",
-    "temperature": "18°C",
-    "weather": "Partly Cloudy",
+    "location": "Ben Arous, Tunisia",
+    "timezone": "UTC+1",
+    "temperature": "22°C",
+    "weather": "Sunny",
     "date": "Wednesday, July 10th, 2025"
   }
 }

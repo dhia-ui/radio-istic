@@ -40,7 +40,7 @@ export function MobileHeader({ mockData }: MobileHeaderProps) {
       <div className="flex h-header-mobile items-center justify-between px-4">
         <div className="flex items-center gap-3">
           <SidebarTrigger className="-ml-1" />
-          <RadioIsticLogo width={120} height={40} />
+          <RadioIsticLogo width={160} height={55} />
         </div>
         <div className="flex items-center gap-2">
           {mounted && (

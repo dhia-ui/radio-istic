@@ -2,8 +2,22 @@ const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const { body } = require('express-validator');
+const rateLimit = require('express-rate-limit');
 const User = require('../models/User');
 const { validate } = require('../middleware/validate');
+const upload = require('../middleware/upload');
+const { validateUpload } = require('../middleware/uploadValidation');
+const path = require('path');
+const fs = require('fs');
+
+// Rate limiter for file uploads
+const uploadLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10, // 10 uploads per hour per user
+  message: 'Too many upload attempts. Please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // Generate JWT token
 const generateToken = (id) => {
@@ -238,6 +252,65 @@ router.put('/change-password', require('../middleware/auth').protect, [
     res.status(500).json({
       success: false,
       message: 'Error changing password',
+      error: error.message
+    });
+  }
+});
+
+// @route   POST /api/auth/upload-avatar
+// @desc    Upload user avatar
+// @access  Private
+router.post(
+  '/upload-avatar',
+  require('../middleware/auth').protect,
+  uploadLimiter,
+  upload.single('avatar'),
+  validateUpload,
+  async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded'
+      });
+    }
+
+    // Delete old avatar if it exists and is not a default avatar
+    const user = await User.findById(req.user._id);
+    if (user.avatar && !user.avatar.includes('default') && !user.avatar.includes('placeholder')) {
+      const oldAvatarPath = path.join(__dirname, '..', 'public', user.avatar);
+      if (fs.existsSync(oldAvatarPath)) {
+        fs.unlinkSync(oldAvatarPath);
+      }
+    }
+
+    // Generate avatar URL
+    const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+
+    // Update user avatar in database
+    user.avatar = avatarUrl;
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Avatar uploaded successfully',
+      avatarUrl: avatarUrl,
+      user: user.toPublicProfile()
+    });
+  } catch (error) {
+    console.error('Upload avatar error:', error);
+    
+    // Delete uploaded file if there was an error
+    if (req.file) {
+      const filePath = path.join(__dirname, '..', 'public', 'uploads', 'avatars', req.file.filename);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Error uploading avatar',
       error: error.message
     });
   }

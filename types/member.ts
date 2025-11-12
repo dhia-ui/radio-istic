@@ -17,4 +17,5 @@ export interface Member {
   points: number
   role?: string
   isBureau?: boolean
+  coordonation?: string // Bureau position/coordination
 }

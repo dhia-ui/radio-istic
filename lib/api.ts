@@ -9,6 +9,27 @@
 
 // API Base URL from environment variable
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const BACKEND_BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000';
+
+/**
+ * Get full avatar URL from backend
+ */
+export function getAvatarUrl(avatarPath: string | undefined | null): string {
+  if (!avatarPath) return '/avatars/default-avatar.jpg';
+  
+  // If it's already a full URL, return it
+  if (avatarPath.startsWith('http://') || avatarPath.startsWith('https://')) {
+    return avatarPath;
+  }
+  
+  // If it starts with /uploads or /avatars, prepend backend URL
+  if (avatarPath.startsWith('/uploads') || avatarPath.startsWith('/avatars')) {
+    return `${BACKEND_BASE_URL}${avatarPath}`;
+  }
+  
+  // Otherwise return as-is (for local paths)
+  return avatarPath;
+}
 
 /**
  * Get stored JWT token from localStorage
@@ -98,6 +119,7 @@ export interface RegisterRequest {
   motivation?: string;
   projects?: string;
   skills?: string;
+  avatar?: string;
 }
 
 export interface AuthResponse {
@@ -155,6 +177,30 @@ export const authAPI = {
       method: 'PUT',
       body: JSON.stringify({ currentPassword, newPassword }),
     });
+  },
+
+  /**
+   * Upload user avatar
+   */
+  uploadAvatar: async (file: File): Promise<{ success: boolean; avatarUrl: string; user: any }> => {
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    const token = getAuthToken();
+    const response = await fetch(`${API_BASE_URL}/auth/upload-avatar`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to upload avatar');
+    }
+
+    return response.json();
   },
 };
 
@@ -400,6 +446,39 @@ export const eventsAPI = {
   },
 };
 
+// ==================== Club Life API ====================
+
+export const clubLifeAPI = {
+  /**
+   * Get all club life events
+   */
+  getEvents: async (): Promise<{ success: boolean; events: any[] }> => {
+    return fetchAPI('/club-life', {
+      method: 'GET',
+    });
+  },
+
+  /**
+   * Vote on an event
+   */
+  vote: async (eventId: number, voteType: 'up' | 'down'): Promise<{ success: boolean; event: any }> => {
+    return fetchAPI(`/club-life/${eventId}/vote`, {
+      method: 'POST',
+      body: JSON.stringify({ voteType }),
+    });
+  },
+
+  /**
+   * Add comment to an event
+   */
+  addComment: async (eventId: number, text: string): Promise<{ success: boolean; comment: any; event: any }> => {
+    return fetchAPI(`/club-life/${eventId}/comment`, {
+      method: 'POST',
+      body: JSON.stringify({ text }),
+    });
+  },
+};
+
 // ==================== Export all APIs ====================
 
 export const api = {
@@ -407,6 +486,7 @@ export const api = {
   members: membersAPI,
   chat: chatAPI,
   events: eventsAPI,
+  clubLife: clubLifeAPI,
 };
 
 export default api;

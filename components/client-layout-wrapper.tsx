@@ -6,7 +6,6 @@ import { AuthProvider } from "@/lib/auth-context";
 import { WebSocketProvider } from "@/lib/websocket-context";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { MobileHeader } from "@/components/dashboard/mobile-header";
-import { DashboardSidebar } from "@/components/dashboard/sidebar";
 import type { MockData } from "@/types/dashboard";
 import { ThemeProvider } from "@/components/theme-provider";
 import { MediaPlayerProvider } from "@/components/media/media-player-context";
@@ -22,6 +21,11 @@ const Notifications = dynamic(() => import("@/components/dashboard/notifications
 const Chat = dynamic(() => import("@/components/chat"), { ssr: false });
 const MobileChat = dynamic(
   () => import("@/components/chat/mobile-chat").then((m) => ({ default: m.MobileChat })),
+  { ssr: false }
+);
+// Dynamically import DashboardSidebar to prevent hydration issues with SVG icons
+const DashboardSidebar = dynamic(
+  () => import("@/components/dashboard/sidebar").then((m) => ({ default: m.DashboardSidebar })),
   { ssr: false }
 );
 

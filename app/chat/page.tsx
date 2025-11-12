@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import DashboardPageLayout from "@/components/dashboard/layout"
 import { MessageCircle, Search, Users, Loader2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
@@ -14,6 +14,7 @@ import ProtectedRoute from "@/components/protected-route"
 import { useAuth } from "@/lib/auth-context"
 import ChatConversation from "@/components/chat/chat-conversation"
 import { useToast } from "@/hooks/use-toast"
+import { useWebSocket } from "@/lib/websocket-context"
 
 export default function ChatPage() {
   const [searchQuery, setSearchQuery] = useState("")
@@ -22,7 +23,8 @@ export default function ChatPage() {
   const [isLoading, setIsLoading] = useState(true)
   const { user } = useAuth()
   const { toast } = useToast()
-  const { conversations, openConversation, activeConversation, newMessage, setNewMessage, handleSendMessage } =
+  const ws = useWebSocket()
+  const { conversations, openConversation, activeConversation, newMessage, setNewMessage, handleSendMessage, setConversations, setCurrentUserId } =
     useChatState()
 
   // Fetch members from API
@@ -30,7 +32,9 @@ export default function ChatPage() {
     const fetchMembers = async () => {
       try {
         const response = await api.members.getAll({})
-        const transformedMembers: Member[] = response.map((u: any) => ({
+        // Backend returns { success: true, members: [...] }
+        const membersArray = response.members || []
+        const transformedMembers: Member[] = membersArray.map((u: any) => ({
           id: u._id,
           name: `${u.firstName} ${u.lastName}`,
           firstName: u.firstName,
@@ -40,10 +44,10 @@ export default function ChatPage() {
           field: u.field,
           year: u.year,
           motivation: u.motivation || "",
-          projects: u.projects?.join(", ") || "",
-          skills: u.skills?.join(", ") || "",
+          projects: typeof u.projects === 'string' ? u.projects : (u.projects?.join(", ") || ""),
+          skills: typeof u.skills === 'string' ? u.skills : (u.skills?.join(", ") || ""),
           status: u.status || "offline",
-          avatar: u.photo || `/avatars/${u.firstName.toLowerCase()}-${u.lastName.toLowerCase()}.png`,
+          avatar: u.avatar || u.photo || `/avatars/${u.firstName.toLowerCase()}-${u.lastName.toLowerCase()}.png`,
           points: u.points || 0,
           role: u.role,
           isBureau: u.isBureau,
@@ -65,6 +69,54 @@ export default function ChatPage() {
     fetchMembers()
   }, [toast])
 
+  // Set current user ID in chat state
+  useEffect(() => {
+    if (user?.id) {
+      setCurrentUserId(user.id)
+    }
+  }, [user?.id, setCurrentUserId])
+
+  // Sync WebSocket messages with conversations
+  useEffect(() => {
+    if (ws.messages.length === 0) return
+
+    // Get the latest message
+    const latestMessage = ws.messages[ws.messages.length - 1]
+    
+    // Find the conversation for this message
+    const convIndex = conversations.findIndex(c => c.id === latestMessage.conversationId)
+    
+    if (convIndex !== -1) {
+      // Update existing conversation
+      const updatedConversations = [...conversations]
+      const conv = updatedConversations[convIndex]
+      
+      // Check if message already exists
+      const messageExists = conv.messages.some(m => m.id === latestMessage.id)
+      
+      if (!messageExists) {
+        conv.messages.push({
+          id: latestMessage.id,
+          content: latestMessage.content,
+          timestamp: latestMessage.timestamp,
+          senderId: latestMessage.senderId,
+          isFromCurrentUser: latestMessage.senderId === user?.id,
+          status: latestMessage.status
+        })
+        conv.lastMessage = {
+          id: latestMessage.id,
+          content: latestMessage.content,
+          timestamp: latestMessage.timestamp,
+          senderId: latestMessage.senderId,
+          isFromCurrentUser: latestMessage.senderId === user?.id,
+          status: latestMessage.status
+        }
+        
+        setConversations(updatedConversations)
+      }
+    }
+  }, [ws.messages, conversations, user?.id, setConversations])
+
   // Filter members for search
   const filteredMembers = members.filter(
     (member) =>
@@ -78,11 +130,65 @@ export default function ChatPage() {
     ? conversations.find((conv) => conv.participants.some((p) => p.id === selectedMemberId))
     : null
 
-  const handleStartChat = (memberId: string) => {
+  const handleStartChat = async (memberId: string) => {
+    if (!user) return
+    
     setSelectedMemberId(memberId)
-    const existingConv = conversations.find((conv) => conv.participants.some((p) => p.id === memberId))
+    const existingConv = conversations.find((conv) => 
+      conv.participants.length === 2 && 
+      conv.participants.some((p) => p.id === memberId) &&
+      conv.participants.some((p) => p.id === user.id)
+    )
+    
     if (existingConv) {
       openConversation(existingConv.id)
+      ws.join(existingConv.id)
+    } else {
+      // Create new conversation
+      try {
+        const response = await api.chat.createConversation([user.id, memberId], false)
+        const newConv = response.conversation
+        
+        // Transform to chat conversation format
+        const member = members.find(m => m.id === memberId)
+        const chatConv = {
+          id: newConv._id,
+          participants: [
+            {
+              id: user.id,
+              name: user.name || `${user.firstName} ${user.lastName}`,
+              username: user.username ?? user.email ?? `${user.firstName ?? ""}${user.lastName ?? ""}`,
+              avatar: user.avatar || '/avatars/default-avatar.jpg',
+              isOnline: true
+            },
+            {
+              id: memberId,
+              name: member?.name || `${member?.firstName} ${member?.lastName}`,
+              username: member?.email ?? `${member?.firstName ?? ""}${member?.lastName ?? ""}`,
+              avatar: member?.avatar || '/avatars/default-avatar.jpg',
+              isOnline: member?.isOnline || false
+            }
+          ],
+          messages: [],
+          lastMessage: undefined,
+          unreadCount: 0,
+          isPinned: false,
+          isMuted: false
+        }
+        
+        // Add to conversations
+        const updatedConversations = [...conversations, chatConv]
+        setConversations(updatedConversations)
+        openConversation(chatConv.id)
+        ws.join(chatConv.id)
+      } catch (error) {
+        console.error("Failed to create conversation:", error)
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: "Impossible de démarrer la conversation"
+        })
+      }
     }
   }
 
@@ -156,7 +262,9 @@ export default function ChatPage() {
                               <Badge className="bg-electric-blue text-xs">{conv.unreadCount}</Badge>
                             )}
                           </div>
-                          <p className="text-sm text-muted-foreground truncate">{conv.lastMessage.content}</p>
+                          <p className="text-sm text-muted-foreground truncate">
+                            {conv.lastMessage?.content || "Nouvelle conversation"}
+                          </p>
                         </div>
                       </button>
                     )
@@ -165,12 +273,11 @@ export default function ChatPage() {
               )}
 
               {/* All Members */}
-              {searchQuery && (
-                <>
-                  <div className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase">
-                    Tous les membres
-                  </div>
-                  {filteredMembers.map((member) => (
+              <>
+                <div className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase">
+                  {searchQuery ? "Résultats de recherche" : "Tous les membres"}
+                </div>
+                {filteredMembers.map((member) => (
                     <button
                       key={member.id}
                       onClick={() => handleStartChat(member.id)}
@@ -206,8 +313,7 @@ export default function ChatPage() {
                       </div>
                     </button>
                   ))}
-                </>
-              )}
+              </>
             </div>
           </div>
 
@@ -218,7 +324,34 @@ export default function ChatPage() {
                 activeConversation={activeConversation}
                 newMessage={newMessage}
                 setNewMessage={setNewMessage}
-                onSendMessage={handleSendMessage}
+                onSendMessage={() => {
+                  if (!user || !newMessage.trim() || !activeConversation) return
+                  
+                  // Get recipient ID (the other participant)
+                  const recipientId = activeConversation.participants.find(p => p.id !== user.id)?.id
+                  if (!recipientId) return
+                  
+                  // Send via WebSocket
+                  ws.sendMessage(recipientId, newMessage.trim(), activeConversation.id)
+                  
+                  // Add message to local state immediately for UI feedback
+                  const localMessage = {
+                    id: `temp-${Date.now()}`,
+                    content: newMessage.trim(),
+                    timestamp: new Date().toISOString(),
+                    senderId: user.id,
+                    isFromCurrentUser: true,
+                    status: 'sending' as const
+                  }
+                  
+                  const updatedConversations = conversations.map(conv => 
+                    conv.id === activeConversation.id 
+                      ? { ...conv, messages: [...conv.messages, localMessage], lastMessage: localMessage }
+                      : conv
+                  )
+                  setConversations(updatedConversations)
+                  setNewMessage('')
+                }}
               />
             ) : selectedMemberId && !selectedConversation ? (
               <div className="flex-1 flex flex-col items-center justify-center p-8">

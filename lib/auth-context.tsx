@@ -15,6 +15,7 @@ export type UserRole =
   | "guest"
 
 export interface User {
+  username: string
   _id: string
   id: string
   firstName: string
@@ -50,6 +51,7 @@ interface AuthContextType {
   ) => Promise<void>
   logout: () => void
   updateUser: (updates: Partial<User>) => void
+  refreshUser: () => Promise<void>
   isAuthenticated: boolean
   isLoading: boolean
 }
@@ -67,6 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       id: apiUser._id,
       firstName: apiUser.firstName,
       lastName: apiUser.lastName,
+      username: apiUser.username || apiUser.email.split("@")[0],
       name: `${apiUser.firstName} ${apiUser.lastName}`,
       email: apiUser.email,
       role: apiUser.role,
@@ -192,11 +195,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("radio-istic-user")
   }
 
-  const updateUser = (updates: Partial<User>) => {
+  const updateUser = async (updates: Partial<User>) => {
     if (user) {
+      // Optimistic update for instant UI feedback
       const updatedUser = { ...user, ...updates }
       setUser(updatedUser)
       localStorage.setItem("radio-istic-user", JSON.stringify(updatedUser))
+
+      // Sync with backend
+      try {
+        const response = await api.auth.updateProfile(updates as any)
+        if (response.success && response.user) {
+          const formattedUser = formatUser(response.user)
+          setUser(formattedUser)
+          localStorage.setItem("radio-istic-user", JSON.stringify(formattedUser))
+        }
+      } catch (error) {
+        console.error("Failed to sync profile with backend:", error)
+        // Keep optimistic update even if backend fails
+      }
+    }
+  }
+
+  const refreshUser = async () => {
+    const token = getAuthToken()
+    if (token) {
+      try {
+        const response = await api.auth.me()
+        if (response.success && response.user) {
+          const formattedUser = formatUser(response.user)
+          setUser(formattedUser)
+          localStorage.setItem("radio-istic-user", JSON.stringify(formattedUser))
+        }
+      } catch (error) {
+        console.error("Failed to refresh user data:", error)
+      }
     }
   }
 
@@ -208,6 +241,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signup,
         logout,
         updateUser,
+        refreshUser,
         isAuthenticated: !!user,
         isLoading,
       }}

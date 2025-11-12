@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { PasswordStrengthIndicator } from "@/components/ui/password-strength-indicator"
+import { validatePasswordStrength } from "@/lib/password-validator"
 import RadioIsticLogo from "@/components/radio-istic-logo"
 import Link from "next/link"
 import { Loader2, AlertCircle } from "lucide-react"
@@ -83,8 +85,11 @@ export default function SignupPage() {
     // Password validation
     if (!password) {
       errors.password = "Le mot de passe est requis"
-    } else if (password.length < 6) {
-      errors.password = "Le mot de passe doit contenir au moins 6 caractères"
+    } else {
+      const passwordStrength = validatePasswordStrength(password)
+      if (!passwordStrength.isValid) {
+        errors.password = "Le mot de passe n'est pas assez fort"
+      }
     }
 
     // Confirm password validation
@@ -135,7 +140,7 @@ export default function SignupPage() {
       <div className="w-full max-w-md">
         <div className="bg-card border border-border rounded-xl p-8 shadow-lg">
           <div className="flex justify-center mb-8">
-            <RadioIsticLogo width={200} height={60} />
+            <RadioIsticLogo width={280} height={90} />
           </div>
 
           <h1 className="text-2xl font-display font-bold text-center mb-2">Inscription</h1>
@@ -283,6 +288,7 @@ export default function SignupPage() {
               {fieldErrors.password && (
                 <p className="text-sm text-destructive">{fieldErrors.password}</p>
               )}
+              <PasswordStrengthIndicator password={password} />
             </div>
 
             <div className="space-y-2">

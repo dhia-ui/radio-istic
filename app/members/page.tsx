@@ -34,7 +34,9 @@ export default function MembersPage() {
       setIsLoading(true)
       setError(null)
       try {
-        const filters: any = {}
+        const filters: any = {
+          limit: 1000 // Request all members (increase limit)
+        }
         if (searchQuery) filters.search = searchQuery
         if (filterField !== "all") filters.field = filterField
         if (filterYear !== "all") filters.year = parseInt(filterYear)
@@ -42,9 +44,13 @@ export default function MembersPage() {
 
         const response = await api.members.getAll(filters)
         
+        // Backend returns { success: true, members: [...] }
+        const membersArray = response.members || []
+        
         // Transform API response to Member format
-        const transformedMembers: Member[] = response.map((user: any) => ({
+        const transformedMembers: Member[] = membersArray.map((user: any) => ({
           id: user._id,
+          name: `${user.firstName} ${user.lastName}`,
           firstName: user.firstName,
           lastName: user.lastName,
           email: user.email,
@@ -52,13 +58,14 @@ export default function MembersPage() {
           year: user.year,
           role: user.role,
           isBureau: user.isBureau,
+          coordonation: user.coordonation,
           points: user.points || 0,
           status: user.status || "offline",
-          avatar: user.photo || `/avatars/${user.firstName.toLowerCase()}-${user.lastName.toLowerCase()}.jpg`,
+          avatar: user.avatar || user.photo || `/avatars/${user.firstName.toLowerCase()}-${user.lastName.toLowerCase()}.jpg`,
           phone: user.phone,
           motivation: user.motivation || `Étudiant ${user.field} - ${user.year}ème année`,
-          projects: user.projects || [],
-          skills: user.skills || [],
+          projects: typeof user.projects === 'string' ? user.projects : (user.projects?.join(", ") || ""),
+          skills: typeof user.skills === 'string' ? user.skills : (user.skills?.join(", ") || ""),
         }))
 
         setMembersData(transformedMembers)

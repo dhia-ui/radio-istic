@@ -156,14 +156,14 @@ const members = [
 // Sample events data
 const events = [
   {
-    title: 'Radio ISTIC Launch Party 2024',
+    title: 'Radio ISTIC Launch Party 2025',
     description: 'Celebrating the launch of our new radio station with live music, games, and special guests!',
-    startDate: new Date('2024-12-15T18:00:00Z'),
+    startDate: new Date('2025-12-15T18:00:00Z'),
     location: 'ISTIC Main Auditorium',
     image: '/events/launch-party.jpg',
     category: 'Social Events',
     maxParticipants: 200,
-    registrationDeadline: new Date('2024-12-10T23:59:59Z'),
+    registrationDeadline: new Date('2025-12-10T23:59:59Z'),
     status: 'published',
     type: 'public',
     pointsReward: 50
@@ -171,12 +171,12 @@ const events = [
   {
     title: 'Podcast Recording Workshop',
     description: 'Learn the art of podcast recording, editing, and publishing. Hands-on workshop with professional equipment.',
-    startDate: new Date('2024-12-01T14:00:00Z'),
+    startDate: new Date('2025-12-01T14:00:00Z'),
     location: 'Radio ISTIC Studio',
     image: '/events/workshop.jpg',
     category: 'Training',
     maxParticipants: 20,
-    registrationDeadline: new Date('2024-11-28T23:59:59Z'),
+    registrationDeadline: new Date('2025-11-28T23:59:59Z'),
     status: 'published',
     type: 'members-only',
     pointsReward: 100
@@ -184,12 +184,12 @@ const events = [
   {
     title: 'Annual Radio Competition',
     description: 'Compete with other members to create the best radio show! Prizes for top 3 winners.',
-    startDate: new Date('2025-01-20T10:00:00Z'),
+    startDate: new Date('2025-12-20T10:00:00Z'),
     location: 'ISTIC Campus',
     image: '/events/competition.jpg',
     category: 'Sport',
     maxParticipants: 50,
-    registrationDeadline: new Date('2025-01-15T23:59:59Z'),
+    registrationDeadline: new Date('2025-12-15T23:59:59Z'),
     status: 'published',
     type: 'members-only',
     pointsReward: 200
