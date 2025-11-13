@@ -70,7 +70,9 @@ const userSchema = new mongoose.Schema({
       'secretary',
       'sponsor-manager',
       'events-organizer',
+      'event-manager',
       'media-responsable',
+      'rh-manager',
       'member',
       'guest'
     ],
