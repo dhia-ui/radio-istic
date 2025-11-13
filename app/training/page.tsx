@@ -54,7 +54,7 @@ const trainingModules = [
     maxEnrolled: 35,
     level: "Débutant",
     instructor: "Équipe Média",
-    image: "/placeholder.svg?height=300&width=400",
+    image: "/illustrator-vector-design.jpg",
     progress: 0,
   },
   {
@@ -67,7 +67,7 @@ const trainingModules = [
     maxEnrolled: 20,
     level: "Débutant",
     instructor: "Équipe Radio",
-    image: "/placeholder.svg?height=300&width=400",
+    image: "/podcast-microphone-neon.jpg",
     progress: 0,
   },
   {
@@ -80,7 +80,7 @@ const trainingModules = [
     maxEnrolled: 30,
     level: "Débutant",
     instructor: "Équipe Média",
-    image: "/placeholder.svg?height=300&width=400",
+    image: "/student-life-vlog.jpg",
     progress: 0,
   },
 ]

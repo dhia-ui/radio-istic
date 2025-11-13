@@ -31,6 +31,8 @@ export function AvatarPicker({ currentAvatar, open, onOpenChange, onAvatarChange
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
+  console.log('AvatarPicker render:', { open, currentAvatar, selectedAvatar })
+
   const { uploading, progress, error, uploadAvatar, selectPresetAvatar, clearError } = useAvatarUpload()
 
   // Dropzone for file upload

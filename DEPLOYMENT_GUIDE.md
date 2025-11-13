@@ -1,436 +1,441 @@
-# 🚀 Radio Istic - Complete Deployment Guide
+# 🚀 DEPLOYMENT GUIDE - Radio ISTIC Dashboard
 
-This guide will walk you through deploying your Radio Istic Dashboard with all features working correctly.
-
-## 📋 Prerequisites
-
-- GitHub account
-- Netlify account (for frontend hosting)
-- Render.com account (for WebSocket server)
-- Supabase account (for database)
+## Quick Links
+- [Backend Deployment (Render)](#backend-deployment-render)
+- [Frontend Deployment (Netlify)](#frontend-deployment-netlify)
+- [Post-Deployment Testing](#post-deployment-testing)
+- [Troubleshooting](#troubleshooting)
 
 ---
 
-## 🗄️ STEP 1: Set Up Supabase Database
+## 📋 PRE-DEPLOYMENT CHECKLIST
 
-### 1.1 Create Supabase Project
+### 1. Local Testing
+- [ ] Run `npm run build` on frontend → Should complete without errors
+- [ ] Start backend: `cd backend-api && npm start` → Should connect to MongoDB
+- [ ] Start frontend: `npm run dev` → Should load on localhost:3000
+- [ ] Test full authentication flow:
+  - [ ] Sign up new user
+  - [ ] Login with email/password
+  - [ ] Update profile (name, phone, coordination)
+  - [ ] Upload avatar image
+  - [ ] Logout
+- [ ] Test WebSocket chat:
+  - [ ] Open 2 browser windows (2 different users)
+  - [ ] Send messages between users
+  - [ ] Verify messages persist (check MongoDB)
+  - [ ] Check typing indicators work
+  - [ ] Verify online/offline status updates
+- [ ] Test all pages:
+  - [ ] Members page loads
+  - [ ] Events page loads
+  - [ ] Bureau page loads
+  - [ ] Settings page loads
+  - [ ] Chat page loads
+- [ ] Check browser console → No errors
+- [ ] Check backend logs → No errors
 
-1. Go to [https://app.supabase.com](https://app.supabase.com)
-2. Click "New Project"
-3. Fill in:
-   - **Name**: radio-istic
-   - **Database Password**: (create a strong password and save it)
+### 2. Code Quality
+- [ ] Run `npm run lint` → Fix all errors
+- [ ] Run `npm audit` → Fix critical vulnerabilities
+- [ ] Remove all `console.log()` for production (optional)
+- [ ] Verify `.env` files are in `.gitignore`
+- [ ] Remove any test API keys or secrets
+
+### 3. Environment Variables
+- [ ] All `.env` files NOT committed to Git
+- [ ] `.env.example` files complete and documented
+- [ ] MongoDB URI is production connection string
+- [ ] JWT_SECRET is strong (32+ characters)
+- [ ] CORS origins match production domains
+
+### 4. Security
+- [ ] Run `git log --all --full-history -- "*env*"` → Should show no .env commits
+- [ ] Check for hardcoded secrets in code → None found
+- [ ] Verify rate limiting enabled on auth routes
+- [ ] Verify helmet security headers enabled
+- [ ] Verify file upload validation working
+
+---
+
+## 🔧 BACKEND DEPLOYMENT (Render)
+
+### Step 1: Prepare Backend
+1. Open terminal in `backend-api` directory
+2. Verify package.json has correct scripts:
+   ```json
+   {
+     "scripts": {
+       "start": "node server.js",
+       "dev": "nodemon server.js",
+       "build": "echo 'No build required'"
+     }
+   }
+   ```
+
+### Step 2: Create Render Web Service
+1. Go to https://dashboard.render.com
+2. Click **"New +"** → Select **"Web Service"**
+3. Connect your GitHub repository
+4. Configure service:
+   - **Name**: `radio-istic-api` (or your choice)
    - **Region**: Choose closest to your users
-4. Click "Create new project"
-5. Wait for database to be ready (1-2 minutes)
-
-### 1.2 Create Database Tables
-
-1. In your Supabase project, go to **SQL Editor**
-2. Click "New query"
-3. Paste this SQL code:
-
-```sql
--- Create users table
-CREATE TABLE users (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  email TEXT UNIQUE NOT NULL,
-  name TEXT NOT NULL,
-  password TEXT NOT NULL,
-  avatar TEXT,
-  field TEXT,
-  year INTEGER,
-  role TEXT DEFAULT 'member',
-  points INTEGER DEFAULT 0,
-  created_at TIMESTAMP DEFAULT NOW()
-);
-
--- Create messages table
-CREATE TABLE messages (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  conversation_id TEXT NOT NULL,
-  sender_id UUID REFERENCES users(id),
-  recipient_id UUID REFERENCES users(id),
-  content TEXT NOT NULL,
-  status TEXT DEFAULT 'sent',
-  created_at TIMESTAMP DEFAULT NOW()
-);
-
--- Create comments table
-CREATE TABLE comments (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID REFERENCES users(id),
-  content TEXT NOT NULL,
-  post_id TEXT,
-  created_at TIMESTAMP DEFAULT NOW()
-);
-
--- Create likes table
-CREATE TABLE likes (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID REFERENCES users(id),
-  post_id TEXT NOT NULL,
-  created_at TIMESTAMP DEFAULT NOW(),
-  UNIQUE(user_id, post_id)
-);
-
--- Enable Row Level Security
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
-ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE likes ENABLE ROW LEVEL SECURITY;
-
--- Policies for users table
-CREATE POLICY "Users can view all profiles" ON users
-  FOR SELECT USING (true);
-
-CREATE POLICY "Users can update own profile" ON users
-  FOR UPDATE USING (auth.uid() = id);
-
--- Policies for messages table
-CREATE POLICY "Users can view own messages" ON messages
-  FOR SELECT USING (auth.uid() = sender_id OR auth.uid() = recipient_id);
-
-CREATE POLICY "Users can insert own messages" ON messages
-  FOR INSERT WITH CHECK (auth.uid() = sender_id);
-
--- Policies for comments table
-CREATE POLICY "Anyone can view comments" ON comments
-  FOR SELECT USING (true);
-
-CREATE POLICY "Users can insert own comments" ON comments
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can delete own comments" ON comments
-  FOR DELETE USING (auth.uid() = user_id);
-
--- Policies for likes table
-CREATE POLICY "Anyone can view likes" ON likes
-  FOR SELECT USING (true);
-
-CREATE POLICY "Users can insert own likes" ON likes
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can delete own likes" ON likes
-  FOR DELETE USING (auth.uid() = user_id);
-```
-
-4. Click "Run" to execute
-5. Verify tables were created in the **Table Editor**
-
-### 1.3 Get Supabase Credentials
-
-1. Go to **Settings** → **API**
-2. Copy these values:
-   - **Project URL** (e.g., `https://xxxxx.supabase.co`)
-   - **anon/public key** (the long string starting with `eyJ...`)
-3. Save these - you'll need them later
-
----
-
-## 🌐 STEP 2: Deploy WebSocket Server to Render
-
-### 2.1 Push WebSocket Server to GitHub
-
-```bash
-# Navigate to websocket-server directory
-cd websocket-server
-
-# Initialize git (if not already done)
-git init
-
-# Add all files
-git add .
-
-# Commit
-git commit -m "Initial WebSocket server setup"
-
-# Create a new repository on GitHub called "radio-istic-websocket"
-# Then push to it
-git remote add origin https://github.com/YOUR_USERNAME/radio-istic-websocket.git
-git branch -M main
-git push -u origin main
-```
-
-### 2.2 Deploy to Render
-
-1. Go to [https://render.com](https://render.com)
-2. Sign in and go to Dashboard
-3. Click **New +** → **Web Service**
-4. Connect your GitHub account if not already connected
-5. Select the `radio-istic-websocket` repository
-6. Configure the service:
-   - **Name**: `radio-istic-websocket`
+   - **Branch**: `main` or `master`
+   - **Root Directory**: `backend-api`
    - **Environment**: `Node`
-   - **Region**: Choose closest to your users
-   - **Branch**: `main`
    - **Build Command**: `npm install`
-   - **Start Command**: `npm start`
-   - **Plan**: **Free**
-7. Click **Create Web Service**
-8. Wait for deployment (2-3 minutes)
-9. **Copy your Render URL** (e.g., `https://radio-istic-websocket.onrender.com`)
+   - **Start Command**: `node server.js`
+   - **Instance Type**: `Free` (for testing) or `Starter` (for production)
 
-### 2.3 Test WebSocket Server
-
-Open your browser and visit: `https://radio-istic-websocket.onrender.com`
-
-You should see:
-```json
-{
-  "status": "online",
-  "connectedUsers": 0,
-  "timestamp": "2025-11-10T..."
-}
-```
-
----
-
-## 🎨 STEP 3: Deploy Frontend to Netlify
-
-### 3.1 Update Environment Variables
-
-1. In your main project, open `.env.local`
-2. Update with your actual values:
-
-```env
-NEXT_PUBLIC_SOCKET_URL=https://radio-istic-websocket.onrender.com
-NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-NEXT_PUBLIC_SITE_URL=https://radioistic.netlify.app
-```
-
-### 3.2 Push Changes to GitHub
+### Step 3: Add Environment Variables
+Click **"Environment"** → Add the following:
 
 ```bash
-# Make sure you're in the main project directory
-cd ..
+# Required - MongoDB Connection
+MONGODB_URI=mongodb+srv://YOUR_USERNAME:YOUR_PASSWORD@cluster0.xxxxx.mongodb.net/radio-istic?retryWrites=true&w=majority
 
-# Add all changes
-git add .
+# Required - JWT Configuration
+JWT_SECRET=<generate-new-secret-see-below>
+JWT_EXPIRE=7d
 
-# Commit
-git commit -m "Add WebSocket server, Supabase integration, and Spotify player"
+# Required - Server Configuration
+NODE_ENV=production
+PORT=5000
 
-# Push to GitHub
-git push origin main
+# Required - CORS (Update after getting Netlify URL)
+CORS_ORIGIN=https://your-app.netlify.app
+FRONTEND_URL=https://your-app.netlify.app
+
+# Optional - Cloudinary (for future file uploads)
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
 ```
 
-### 3.3 Configure Netlify
-
-1. Go to [https://netlify.com](https://netlify.com)
-2. Sign in and go to **Sites**
-3. Find your **radioistic** site
-4. Go to **Site configuration** → **Environment variables**
-5. Click **Add a variable** and add these:
-
-| Key | Value |
-|-----|-------|
-| `NEXT_PUBLIC_SOCKET_URL` | `https://radio-istic-websocket.onrender.com` |
-| `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Your Supabase anon key |
-| `NEXT_PUBLIC_SITE_URL` | `https://radioistic.netlify.app` |
-
-6. Click **Save**
-
-### 3.4 Trigger Redeploy
-
-1. Go to **Deploys** tab
-2. Click **Trigger deploy** → **Deploy site**
-3. Wait for build to complete (3-5 minutes)
-
----
-
-## ✅ STEP 4: Verify Everything Works
-
-### 4.1 Test Checklist
-
-Visit `https://radioistic.netlify.app` and verify:
-
-- [x] Site loads without errors
-- [x] Light/Dark theme toggle works
-- [x] Can sign up for a new account
-- [x] Can log in
-- [x] Real-time chat works (open in two browsers)
-- [x] Podcasts page shows Spotify player
-- [x] YouTube videos load
-- [x] No console errors
-
-### 4.2 Check Browser Console
-
-Press `F12` and check console. You should see:
-```
-🔌 Connecting to WebSocket server: https://radio-istic-websocket.onrender.com
-✅ WebSocket connected
-🔐 User authenticated: your-email@example.com
+**Generate JWT_SECRET**:
+```bash
+# Run this in terminal:
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+# Copy the output → Use as JWT_SECRET
 ```
 
-### 4.3 Test Real-Time Chat
+**Get MongoDB URI**:
+1. Go to MongoDB Atlas → https://cloud.mongodb.com
+2. Click "Connect" on your cluster
+3. Choose "Connect your application"
+4. Copy connection string
+5. Replace `<password>` with your database password
+6. Add `/radio-istic` after `.net/` (database name)
 
-1. Open site in two different browsers (or incognito)
-2. Log in with different accounts in each
-3. Try sending messages
-4. Messages should appear instantly in both browsers
-
----
-
-## 🎵 STEP 5: Add Spotify Podcast Episodes (Optional)
-
-### 5.1 Get Spotify Episode IDs
-
-1. Go to [Spotify for Podcasters](https://podcasters.spotify.com/)
-2. Upload your podcast episodes
-3. For each episode, get the Episode ID from the URL:
+### Step 4: Deploy
+1. Click **"Create Web Service"**
+2. Wait for build to complete (3-5 minutes)
+3. Check logs for:
    ```
-   https://open.spotify.com/episode/2ePzduTwuu4OsYRw9DTJb5
-                                      ^^^^^^^^^^^^^^^^^^^^^^
-                                      This is the Episode ID
+   ✅ MongoDB Connected: cluster0.xxxxx.mongodb.net
+   📦 Database: radio-istic
+   🚀 Radio Istic API server running on port 5000
    ```
+4. If successful, copy your Render URL: `https://radio-istic-api.onrender.com`
 
-### 5.2 Update Podcasts Page
-
-Edit `app/podcasts/page.tsx`:
-
-```typescript
-<SpotifyPlayer episodeId="YOUR_EPISODE_ID_HERE" />
-```
-
----
-
-## 🐛 Troubleshooting
-
-### WebSocket Not Connecting
-
-**Problem**: Console shows "Connection error"
-
-**Solution**:
-1. Verify Render service is running
-2. Check `NEXT_PUBLIC_SOCKET_URL` in Netlify env vars
-3. Ensure URL doesn't have trailing slash
-4. Wait 30 seconds (Render free tier has cold starts)
-
-### Supabase Errors
-
-**Problem**: "Invalid API key" or "Failed to fetch"
-
-**Solution**:
-1. Verify credentials in `.env.local` and Netlify
-2. Check Supabase project is not paused
-3. Verify SQL tables were created successfully
-
-### Light Theme Not Working
-
-**Problem**: Text invisible in light mode
-
-**Solution**:
-1. Clear browser cache (Ctrl+Shift+Delete)
-2. Hard refresh (Ctrl+Shift+R)
-3. Verify globals.css has light theme fixes
-
-### Chat Messages Not Sending
-
-**Problem**: Messages don't appear
-
-**Solution**:
-1. Check WebSocket connection in console
-2. Verify user is authenticated
-3. Check Render logs for errors
-4. Ensure both users are online
-
----
-
-## 📊 Monitoring
-
-### Check Render Logs
-
-1. Go to Render Dashboard
-2. Click your service
-3. Go to **Logs** tab
-4. Watch for connection events:
-   ```
-   ✅ User connected: ABC123
-   🔐 User authenticated: user@example.com
-   💬 Message received: {...}
-   ```
-
-### Check Netlify Deploy Logs
-
-1. Go to Netlify Dashboard
-2. Click your site
-3. Go to **Deploys**
-4. Click latest deploy
-5. Review build logs for errors
-
----
-
-## 🎉 Success!
-
-Your Radio Istic Dashboard is now fully deployed with:
-
-✅ Real-time messaging
-✅ Persistent authentication
-✅ Database storage
-✅ Spotify podcast player
-✅ YouTube integration
-✅ Working light/dark themes
-✅ Professional production setup
-
----
-
-## 📝 Maintenance Tips
-
-### Update WebSocket Server
+### Step 5: Test Backend API
+Test endpoints with curl or Postman:
 
 ```bash
-cd websocket-server
-# Make changes
-git add .
-git commit -m "Update server"
-git push
-# Render auto-deploys
+# Health check
+curl https://your-app.onrender.com/api/health
+
+# Should return:
+# {"status":"OK","uptime":123,"timestamp":1234567890}
+
+# Test register (create test user)
+curl -X POST https://your-app.onrender.com/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "firstName":"Test",
+    "lastName":"User",
+    "email":"test@example.com",
+    "password":"test123",
+    "field":"GLSI",
+    "year":1
+  }'
+
+# Should return:
+# {"success":true,"token":"...", "user":{...}}
 ```
 
-### Update Frontend
+---
+
+## 🌐 FRONTEND DEPLOYMENT (Netlify)
+
+### Step 1: Prepare Frontend
+1. Open terminal in project root
+2. Create production environment file:
+   ```bash
+   # Create .env.production
+   NEXT_PUBLIC_API_URL=https://your-backend.onrender.com/api
+   NEXT_PUBLIC_SOCKET_URL=https://your-backend.onrender.com
+   NEXT_PUBLIC_SITE_URL=https://your-app.netlify.app
+   ```
+3. Add to `.gitignore`:
+   ```
+   .env.production
+   ```
+
+### Step 2: Update Netlify Configuration
+Create `netlify.toml` in project root:
+
+```toml
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[build.environment]
+  NODE_VERSION = "18.17.0"
+```
+
+### Step 3: Create Netlify Site
+1. Go to https://app.netlify.com
+2. Click **"Add new site"** → **"Import an existing project"**
+3. Connect to GitHub
+4. Select your repository
+5. Configure build settings:
+   - **Base directory**: Leave empty
+   - **Build command**: `npm run build`
+   - **Publish directory**: `.next`
+   - **Branch**: `main` or `master`
+
+### Step 4: Add Environment Variables
+Click **"Site settings"** → **"Environment variables"** → Add:
 
 ```bash
-# Make changes
-git add .
-git commit -m "Update frontend"
-git push
-# Netlify auto-deploys
+NEXT_PUBLIC_API_URL=https://your-backend.onrender.com/api
+NEXT_PUBLIC_SOCKET_URL=https://your-backend.onrender.com
+NEXT_PUBLIC_SITE_URL=https://your-app.netlify.app
 ```
 
-### Backup Database
+**IMPORTANT**: Replace `your-backend.onrender.com` with your actual Render URL from Step 4 above!
 
-1. Go to Supabase Dashboard
-2. Click **Database** → **Backups**
-3. Download backup SQL file
-4. Store safely
+### Step 5: Deploy
+1. Click **"Deploy site"**
+2. Wait for build (5-10 minutes)
+3. Once deployed, copy your Netlify URL: `https://your-app.netlify.app`
 
----
+### Step 6: Update Backend CORS
+1. Go back to Render dashboard
+2. Open your backend service
+3. Click **"Environment"**
+4. Update these variables with your Netlify URL:
+   ```bash
+   CORS_ORIGIN=https://your-actual-app.netlify.app
+   FRONTEND_URL=https://your-actual-app.netlify.app
+   ```
+5. Click **"Save Changes"**
+6. Render will automatically redeploy (1-2 minutes)
 
-## 🆘 Support
-
-If you encounter issues:
-
-1. Check this guide's troubleshooting section
-2. Review Render and Netlify logs
-3. Check Supabase logs in Dashboard
-4. Verify all environment variables
-5. Test with `npm run dev` locally first
-
----
-
-## 🔐 Security Notes
-
-**Important**: Before going fully public:
-
-1. **Hash passwords** in auth-context.tsx (currently plain text)
-2. **Add rate limiting** to prevent spam
-3. **Enable HTTPS** only (Netlify does this automatically)
-4. **Review Supabase RLS policies** for your use case
-5. **Set up Supabase Auth** instead of custom auth
+### Step 7: Update MongoDB Atlas IP Whitelist
+1. Go to MongoDB Atlas
+2. Click "Network Access"
+3. Click "Add IP Address"
+4. Select "Allow Access from Anywhere" (0.0.0.0/0)
+   - **Note**: For better security, add only Render IPs (see Render docs)
+5. Click "Confirm"
 
 ---
 
-Good luck with your Radio Istic Dashboard! 🎙️📻
+## ✅ POST-DEPLOYMENT TESTING
+
+### 1. Test Authentication
+- [ ] Go to `https://your-app.netlify.app`
+- [ ] Click "Sign Up"
+- [ ] Create new account
+- [ ] Verify redirect to members page
+- [ ] Check MongoDB Atlas → New user should appear
+- [ ] Logout
+- [ ] Login with same credentials
+- [ ] Should work without errors
+
+### 2. Test WebSocket Connection
+- [ ] Open browser DevTools (F12)
+- [ ] Go to Console tab
+- [ ] Should see: `✅ WebSocket connected to backend on port 5000`
+- [ ] Open 2 browser windows (or 2 devices)
+- [ ] Login as different users
+- [ ] Send chat message from User A
+- [ ] User B should receive message in real-time
+- [ ] Check MongoDB → Message should be saved
+
+### 3. Test File Upload
+- [ ] Login to production site
+- [ ] Go to Settings page
+- [ ] Upload new avatar image
+- [ ] Should see success message
+- [ ] Refresh page → Avatar should persist
+- [ ] Check Render logs → Should see upload activity
+
+### 4. Test All Pages
+- [ ] Members page loads
+- [ ] Events page loads
+- [ ] Bureau page loads
+- [ ] Training page loads
+- [ ] Media page loads
+- [ ] Club Life page loads
+- [ ] Sponsors page loads
+- [ ] Chat page works
+
+### 5. Performance Check
+- [ ] Open Lighthouse in Chrome DevTools
+- [ ] Run audit
+- [ ] Performance should be 70+ (acceptable)
+- [ ] Accessibility should be 90+ (good)
+- [ ] Best Practices should be 90+ (good)
+
+### 6. Mobile Testing
+- [ ] Open site on mobile device
+- [ ] Test navigation
+- [ ] Test chat
+- [ ] Test file upload
+- [ ] Check responsive design
+
+---
+
+## 🐛 TROUBLESHOOTING
+
+### Issue: Backend not connecting to MongoDB
+**Symptoms**: Render logs show "❌ MongoDB connection failed"
+
+**Solutions**:
+1. Check MongoDB Atlas IP whitelist includes 0.0.0.0/0
+2. Verify MONGODB_URI in Render environment variables
+3. Check MongoDB password doesn't contain special characters
+4. Use URL encoding for password: `myPass@123` → `myPass%40123`
+
+### Issue: Frontend can't reach backend API
+**Symptoms**: Network errors in browser console, 404 or CORS errors
+
+**Solutions**:
+1. Verify NEXT_PUBLIC_API_URL is correct in Netlify env vars
+2. Check backend CORS_ORIGIN matches Netlify URL exactly
+3. Ensure backend is running (check Render dashboard)
+4. Test backend API directly with curl (see Step 5 above)
+5. Check Render logs for errors
+
+### Issue: WebSocket connection fails
+**Symptoms**: Chat doesn't work, console shows WebSocket error
+
+**Solutions**:
+1. Verify NEXT_PUBLIC_SOCKET_URL points to Render URL (NOT localhost)
+2. Check backend is running on port 5000
+3. Verify JWT token is valid (check localStorage in DevTools)
+4. Check Render logs for Socket.IO errors
+5. Test with `wss://` protocol if `https://` doesn't work
+
+### Issue: File uploads fail
+**Symptoms**: Avatar upload returns error or doesn't save
+
+**Solutions**:
+1. Check Render filesystem limits (free tier has 512MB)
+2. Verify upload middleware is working (check backend logs)
+3. Consider implementing Cloudinary for production
+4. Check file size limit (max 5MB)
+
+### Issue: Build fails on Netlify
+**Symptoms**: Deployment fails, build logs show errors
+
+**Solutions**:
+1. Run `npm run build` locally first
+2. Check for TypeScript errors: `npm run lint`
+3. Verify all dependencies are in package.json
+4. Check Node version matches (18.x)
+5. Review Netlify build logs for specific error
+
+### Issue: "Application Error" on Render
+**Symptoms**: Backend shows generic error page
+
+**Solutions**:
+1. Check Render logs for crash reason
+2. Verify PORT environment variable is set to 5000
+3. Check if MongoDB connection succeeded
+4. Verify all required env vars are set
+5. Check for syntax errors in server.js
+
+### Issue: CORS errors in production
+**Symptoms**: Browser console shows "blocked by CORS policy"
+
+**Solutions**:
+1. Verify CORS_ORIGIN in Render matches Netlify URL exactly
+2. No trailing slashes: ✅ `https://app.netlify.app` ❌ `https://app.netlify.app/`
+3. Check protocol: must be `https://` (not `http://`)
+4. Redeploy backend after changing CORS settings
+
+---
+
+## 📊 MONITORING & MAINTENANCE
+
+### Daily Checks
+- [ ] Check Render dashboard for uptime
+- [ ] Check MongoDB Atlas for connection spikes
+- [ ] Review error logs in Render
+
+### Weekly Checks
+- [ ] Run `npm audit` and fix vulnerabilities
+- [ ] Check disk usage on Render
+- [ ] Review MongoDB storage (free tier = 512MB)
+- [ ] Check for user-reported issues
+
+### Monthly Checks
+- [ ] Update dependencies: `npm update`
+- [ ] Review MongoDB indexes performance
+- [ ] Check for new Next.js/React versions
+- [ ] Backup MongoDB data
+
+### Setup Monitoring (Optional)
+1. **UptimeRobot** (Free): Monitor site uptime
+   - Add monitor for `https://your-app.netlify.app`
+   - Add monitor for `https://your-backend.onrender.com/api/health`
+
+2. **Sentry** (Free tier): Error tracking
+   - Already installed in project!
+   - Add DSN to environment variables
+   - Get real-time error notifications
+
+3. **MongoDB Atlas Alerts**: Database monitoring
+   - Go to Atlas → Alerts
+   - Enable alerts for connection spikes, high CPU, low storage
+
+---
+
+## 🎉 SUCCESS CRITERIA
+
+Your deployment is successful if:
+- ✅ Frontend loads at Netlify URL
+- ✅ Backend API responds to health check
+- ✅ Users can sign up and login
+- ✅ WebSocket chat works in real-time
+- ✅ File uploads work
+- ✅ Data persists in MongoDB
+- ✅ No errors in browser console
+- ✅ No errors in Render logs
+- ✅ Mobile responsive
+- ✅ All pages load under 3 seconds
+
+---
+
+## 📞 SUPPORT
+
+If you encounter issues not covered here:
+1. Check Render documentation: https://render.com/docs
+2. Check Netlify documentation: https://docs.netlify.com
+3. Check MongoDB Atlas docs: https://docs.atlas.mongodb.com
+4. Review project logs carefully
+5. Test locally first before debugging production
+
+---
+
+**Last Updated**: After audit fixes on November 12, 2025
+**Deployment Time**: ~30-45 minutes (first time)

@@ -1,9 +1,14 @@
+"use client"
+
 import DashboardPageLayout from "@/components/dashboard/layout"
 import { Radio, Users, Calendar, TrendingUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { useAuth } from "@/lib/auth-context"
 
 export default function HomePage() {
+  const { isAuthenticated } = useAuth()
+  
   return (
     <DashboardPageLayout
       header={{
@@ -22,7 +27,9 @@ export default function HomePage() {
           </p>
           <div className="flex flex-wrap gap-4">
             <Button asChild size="lg" className="bg-electric-blue hover:bg-electric-blue/90 neon-glow-blue">
-              <Link href="/login">Accéder au portail</Link>
+              <Link href={isAuthenticated ? "/members" : "/login"}>
+                {isAuthenticated ? "Accéder au portail" : "Se connecter"}
+              </Link>
             </Button>
             <Button asChild size="lg" variant="outline">
               <Link href="/events">Nos événements</Link>

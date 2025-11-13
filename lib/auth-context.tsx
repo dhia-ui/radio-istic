@@ -1,7 +1,7 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
-import { members } from "@/lib/members-data"
+import { api, getAuthToken, setAuthToken, removeAuthToken } from "@/lib/api"
 
 export type UserRole =
   | "admin"
@@ -15,21 +15,43 @@ export type UserRole =
   | "guest"
 
 export interface User {
-  avatar: any
+  username: string
+  _id: string
   id: string
+  firstName: string
+  lastName: string
   name: string
   email: string
   role: UserRole
+  avatar?: string
   photo?: string
+  field: string
+  year: number
+  points: number
+  status: "online" | "offline"
+  isBureau?: boolean
+  phone?: string
+  motivation?: string
+  projects?: string
+  skills?: string
   isOnline: boolean
 }
 
 interface AuthContextType {
   user: User | null
   login: (email: string, password: string) => Promise<void>
-  signup: (name: string, email: string, password: string) => Promise<void>
+  signup: (
+    firstName: string,
+    lastName: string,
+    email: string,
+    password: string,
+    field: string,
+    year: number,
+    phone?: string
+  ) => Promise<void>
   logout: () => void
   updateUser: (updates: Partial<User>) => void
+  refreshUser: () => Promise<void>
   isAuthenticated: boolean
   isLoading: boolean
 }
@@ -40,79 +62,127 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  useEffect(() => {
-    // Check for existing session
-    const storedUser = localStorage.getItem("radio-istic-user")
-    if (storedUser) {
-      setUser(JSON.parse(storedUser))
+  // Format API user to match our User interface
+  const formatUser = (apiUser: any): User => {
+    return {
+      _id: apiUser._id,
+      id: apiUser._id,
+      firstName: apiUser.firstName,
+      lastName: apiUser.lastName,
+      username: apiUser.username || apiUser.email.split("@")[0],
+      name: `${apiUser.firstName} ${apiUser.lastName}`,
+      email: apiUser.email,
+      role: apiUser.role,
+      avatar: apiUser.avatar,
+      photo: apiUser.avatar,
+      field: apiUser.field,
+      year: apiUser.year,
+      points: apiUser.points || 0,
+      status: apiUser.status || 'offline',
+      isBureau: apiUser.isBureau || false,
+      phone: apiUser.phone,
+      motivation: apiUser.motivation,
+      projects: apiUser.projects,
+      skills: apiUser.skills,
+      isOnline: apiUser.status === 'online',
     }
-    setIsLoading(false)
+  }
+
+  useEffect(() => {
+    // Check for existing session with JWT token
+    const checkAuth = async () => {
+      const token = getAuthToken()
+      if (token) {
+        try {
+          const response = await api.auth.me()
+          if (response.success && response.user) {
+            const formattedUser = formatUser(response.user)
+            setUser(formattedUser)
+            // Also store in localStorage for quick access
+            localStorage.setItem("radio-istic-user", JSON.stringify(formattedUser))
+          }
+        } catch (error) {
+          console.error("Auth check failed:", error)
+          removeAuthToken()
+          localStorage.removeItem("radio-istic-user")
+        }
+      } else {
+        // Fallback to localStorage user (for offline)
+        const storedUser = localStorage.getItem("radio-istic-user")
+        if (storedUser) {
+          setUser(JSON.parse(storedUser))
+        }
+      }
+      setIsLoading(false)
+    }
+
+    checkAuth()
   }, [])
 
   const login = async (email: string, password: string) => {
     setIsLoading(true)
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      const response = await api.auth.login({ email, password })
 
-      const member = members.find((m) => m.email.toLowerCase() === email.toLowerCase())
+      if (response.success && response.token && response.user) {
+        // Store JWT token
+        setAuthToken(response.token)
 
-      if (!member) {
-        throw new Error("Email non trouvé dans la base des membres")
+        // Format and store user
+        const formattedUser = formatUser(response.user)
+        setUser(formattedUser)
+        localStorage.setItem("radio-istic-user", JSON.stringify(formattedUser))
+      } else {
+        throw new Error(response.message || "Login failed")
       }
-
-      const userRole: UserRole = member.isBureau
-        ? member.role === "Président"
-          ? "president"
-          : member.role === "Vice-président"
-            ? "vice-president"
-            : member.role === "Secrétaire Générale"
-              ? "secretary"
-              : member.role === "Responsable Sponsors"
-                ? "sponsor-manager"
-                : member.role === "Responsable Événements"
-                  ? "events-organizer"
-                  : member.role === "Responsable Média"
-                    ? "media-responsable"
-                    : "member"
-        : "member"
-
-      const authenticatedUser: User = {
-        id: member.id,
-        name: member.name,
-        email: member.email,
-        role: userRole,
-        photo: member.avatar,
-        isOnline: true,
-      }
-
-      setUser(authenticatedUser)
-      localStorage.setItem("radio-istic-user", JSON.stringify(authenticatedUser))
     } catch (error) {
+      console.error("Login error:", error)
+      if (error instanceof Error) {
+        throw new Error(error.message || "Email ou mot de passe incorrect")
+      }
       throw new Error("Email ou mot de passe incorrect")
     } finally {
       setIsLoading(false)
     }
   }
 
-  const signup = async (name: string, email: string, password: string) => {
+  const signup = async (
+    firstName: string,
+    lastName: string,
+    email: string,
+    password: string,
+    field: string,
+    year: number,
+    phone?: string
+  ) => {
     setIsLoading(true)
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      const newUser: User = {
-        id: Date.now().toString(),
-        name,
+      const response = await api.auth.register({
+        firstName,
+        lastName,
         email,
-        role: "member",
-        isOnline: true,
-      }
+        password,
+        field: field as any,
+        year: year as any,
+        phone,
+      })
 
-      setUser(newUser)
-      localStorage.setItem("radio-istic-user", JSON.stringify(newUser))
+      if (response.success && response.token && response.user) {
+        // Store JWT token
+        setAuthToken(response.token)
+
+        // Format and store user
+        const formattedUser = formatUser(response.user)
+        setUser(formattedUser)
+        localStorage.setItem("radio-istic-user", JSON.stringify(formattedUser))
+      } else {
+        throw new Error(response.message || "Registration failed")
+      }
     } catch (error) {
-      console.error("[v0] Signup error:", error)
+      console.error("Signup error:", error)
+      if (error instanceof Error) {
+        throw new Error(error.message || "Échec de l'inscription")
+      }
       throw new Error("Échec de l'inscription")
     } finally {
       setIsLoading(false)
@@ -121,14 +191,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     setUser(null)
+    removeAuthToken()
     localStorage.removeItem("radio-istic-user")
   }
 
-  const updateUser = (updates: Partial<User>) => {
+  const updateUser = async (updates: Partial<User>) => {
     if (user) {
+      // Optimistic update for instant UI feedback
       const updatedUser = { ...user, ...updates }
       setUser(updatedUser)
       localStorage.setItem("radio-istic-user", JSON.stringify(updatedUser))
+
+      // Sync with backend
+      try {
+        const response = await api.auth.updateProfile(updates as any)
+        if (response.success && response.user) {
+          const formattedUser = formatUser(response.user)
+          setUser(formattedUser)
+          localStorage.setItem("radio-istic-user", JSON.stringify(formattedUser))
+        }
+      } catch (error) {
+        console.error("Failed to sync profile with backend:", error)
+        // Keep optimistic update even if backend fails
+      }
+    }
+  }
+
+  const refreshUser = async () => {
+    const token = getAuthToken()
+    if (token) {
+      try {
+        const response = await api.auth.me()
+        if (response.success && response.user) {
+          const formattedUser = formatUser(response.user)
+          setUser(formattedUser)
+          localStorage.setItem("radio-istic-user", JSON.stringify(formattedUser))
+        }
+      } catch (error) {
+        console.error("Failed to refresh user data:", error)
+      }
     }
   }
 
@@ -140,6 +241,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signup,
         logout,
         updateUser,
+        refreshUser,
         isAuthenticated: !!user,
         isLoading,
       }}

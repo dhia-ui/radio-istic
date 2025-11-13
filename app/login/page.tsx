@@ -81,7 +81,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <div className="bg-card border border-border rounded-xl p-8 shadow-lg">
           <div className="flex justify-center mb-8">
-            <RadioIsticLogo width={200} height={60} />
+            <RadioIsticLogo width={280} height={90} />
           </div>
 
           <h1 className="text-2xl font-display font-bold text-center mb-2">Connexion</h1>

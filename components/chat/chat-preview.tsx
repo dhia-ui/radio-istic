@@ -1,23 +1,21 @@
-import Image from "next/image";
-import type { ChatConversation } from "@/types/chat";
-import { formatDate } from "./utils";
-import { mockChatData } from "@/data/chat-mock";
-import { cn } from "@/lib/utils";
+"use client"
+
+import Image from "next/image"
+import type { ChatConversation } from "@/types/chat"
+import { formatDate } from "./utils"
+import { useAuth } from "@/lib/auth-context"
+import { cn } from "@/lib/utils"
 
 interface ChatPreviewProps {
-  conversation: ChatConversation;
-  onOpenConversation: (conversationId: string) => void;
+  conversation: ChatConversation
+  onOpenConversation: (conversationId: string) => void
 }
 
-export default function ChatPreview({
-  conversation,
-  onOpenConversation,
-}: ChatPreviewProps) {
-  const user = conversation.participants.find(
-    (p) => p.id !== mockChatData.currentUser.id
-  );
+export default function ChatPreview({ conversation, onOpenConversation }: ChatPreviewProps) {
+  const { user } = useAuth()
+  const otherUser = conversation.participants.find((p) => p.id !== user?.id)
 
-  if (!user) return null;
+  if (!otherUser) return null
 
   return (
     <div
@@ -26,8 +24,8 @@ export default function ChatPreview({
     >
       <div className="relative">
         <Image
-          src={user.avatar}
-          alt={user.name}
+          src={otherUser.avatar}
+          alt={otherUser.name}
           width={96}
           height={96}
           className="rounded-lg size-14"
@@ -42,11 +40,11 @@ export default function ChatPreview({
       <div className="flex-1 min-w-0 group-hover:bg-accent px-2 py-1 rounded">
         <div className="flex items-center justify-between">
           <div className="flex items-baseline gap-2">
-            <h3 className="font-display text-lg">{user.name}</h3>
-            <p className="text-xs text-foreground/50">{user.username}</p>
+            <h3 className="font-display text-lg">{otherUser.name}</h3>
+            <p className="text-xs text-foreground/50">{otherUser.username}</p>
           </div>
           <span className="text-xs text-foreground/40">
-            {formatDate(conversation.lastMessage.timestamp)}
+            {conversation.lastMessage ? formatDate(conversation.lastMessage.timestamp) : ""}
           </span>
         </div>
         <p
@@ -55,9 +53,9 @@ export default function ChatPreview({
             conversation.unreadCount > 0 && "font-bold text-foreground"
           )}
         >
-          {conversation.lastMessage.content}
+          {conversation.lastMessage?.content ?? ""}
         </p>
       </div>
     </div>
-  );
+  )
 }

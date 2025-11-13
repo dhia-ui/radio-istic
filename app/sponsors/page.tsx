@@ -1,11 +1,33 @@
+"use client"
+
 import DashboardPageLayout from "@/components/dashboard/layout"
 import { Handshake, Star, Building2, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { useTheme } from "next-themes"
+import { useEffect, useState } from "react"
 
 const sponsors = [
   {
     id: "1",
+    name: "L3ziiizprod",
+    tier: "Platinum",
+    logo: "/la3ziz/LOGO SIMPLE 2.png",
+    logoDark: "/la3ziz/LOGO SIMPLE 2.png",
+    logoLight: "/la3ziz/LOGO SILHOUETTE.png",
+    description: "Production audiovisuelle et création de contenu multimédia professionnelle",
+    website: "https://www.instagram.com/l3ziiizprod",
+  },
+  {
+    id: "2",
+    name: "Info Tech IT Services",
+    tier: "Platinum",
+    logo: "/sponsors/infotech-logo.jpg",
+    description: "Services informatiques et solutions IT pour entreprises",
+    website: "https://infotech-services.tn",
+  },
+  {
+    id: "3",
     name: "TechCorp Tunisia",
     tier: "Platinum",
     logo: "/sponsors/techcorp-logo.jpg",
@@ -13,7 +35,7 @@ const sponsors = [
     website: "https://techcorp.tn",
   },
   {
-    id: "2",
+    id: "4",
     name: "Digital Solutions",
     tier: "Gold",
     logo: "/sponsors/digital-solutions-logo.jpg",
@@ -21,7 +43,7 @@ const sponsors = [
     website: "https://digitalsolutions.tn",
   },
   {
-    id: "3",
+    id: "5",
     name: "Innovation Hub",
     tier: "Gold",
     logo: "/sponsors/innovation-hub-logo.jpg",
@@ -29,7 +51,7 @@ const sponsors = [
     website: "https://innovationhub.tn",
   },
   {
-    id: "4",
+    id: "6",
     name: "Media Pro",
     tier: "Silver",
     logo: "/sponsors/media-pro-logo.jpg",
@@ -37,7 +59,7 @@ const sponsors = [
     website: "https://mediapro.tn",
   },
   {
-    id: "5",
+    id: "7",
     name: "Campus Store",
     tier: "Bronze",
     logo: "/sponsors/campus-store-logo.jpg",
@@ -45,7 +67,7 @@ const sponsors = [
     website: "https://campusstore.tn",
   },
   {
-    id: "6",
+    id: "8",
     name: "Food Corner",
     tier: "Bronze",
     logo: "/sponsors/food-corner-logo.jpg",
@@ -78,6 +100,13 @@ const tierInfo = {
 }
 
 export default function SponsorsPage() {
+  const { theme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   return (
     <DashboardPageLayout
       header={{
@@ -117,9 +146,15 @@ export default function SponsorsPage() {
                   className={`bg-gradient-to-br ${tierInfo[tier as keyof typeof tierInfo].color} border rounded-xl p-6 hover:scale-105 transition-transform`}
                 >
                   <div className="flex items-start justify-between mb-4">
-                    <div className="bg-white rounded-lg p-3 w-20 h-20 flex items-center justify-center">
+                    <div className="bg-white dark:bg-gray-900 rounded-lg p-3 w-20 h-20 flex items-center justify-center">
                       <img
-                        src={sponsor.logo || "/placeholder.svg"}
+                        src={
+                          mounted && sponsor.logoLight && sponsor.logoDark
+                            ? theme === "light"
+                              ? sponsor.logoLight
+                              : sponsor.logoDark
+                            : sponsor.logo || "/placeholder.svg"
+                        }
                         alt={sponsor.name}
                         className="w-full h-full object-contain"
                       />

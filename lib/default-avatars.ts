@@ -1,20 +1,44 @@
 /**
  * Default Avatar Presets
- * These avatars are served from public/avatars/defaults/
- * You can replace these with your own avatar images
+ * These avatars are served from public/avatars/
  */
 
 export interface PresetAvatar {
   id: string
   url: string
-  category: 'cute' | 'cool' | 'tech' | 'abstract'
+  category: 'cute' | 'cool' | 'tech' | 'abstract' | 'members'
   name: string
 }
 
-// Using placeholder avatars from UI Avatars service
-// Replace these with your own images in public/avatars/defaults/
+// Using local avatars from public/avatars folder
 export const DEFAULT_AVATARS: PresetAvatar[] = [
-  // Cute Category
+  // Member avatars from public folder
+  {
+    id: 'user-joyboy',
+    url: '/avatars/user_joyboy.png',
+    category: 'members',
+    name: 'Joyboy',
+  },
+  {
+    id: 'user-krimson',
+    url: '/avatars/user_krimson.png',
+    category: 'members',
+    name: 'Krimson',
+  },
+  {
+    id: 'user-mati',
+    url: '/avatars/user_mati.png',
+    category: 'members',
+    name: 'Mati',
+  },
+  {
+    id: 'user-pek',
+    url: '/avatars/user_pek.png',
+    category: 'members',
+    name: 'Pek',
+  },
+
+  // Cute Category - Using Dicebear API as fallback
   {
     id: 'cute-1',
     url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
@@ -44,6 +68,18 @@ export const DEFAULT_AVATARS: PresetAvatar[] = [
     url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sophie',
     category: 'cute',
     name: 'Avatar mignon 5',
+  },
+  {
+    id: 'cute-6',
+    url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emma',
+    category: 'cute',
+    name: 'Avatar mignon 6',
+  },
+  {
+    id: 'cute-7',
+    url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jack',
+    category: 'cute',
+    name: 'Avatar mignon 7',
   },
 
   // Cool Category
@@ -77,6 +113,18 @@ export const DEFAULT_AVATARS: PresetAvatar[] = [
     category: 'cool',
     name: 'Avatar cool 5',
   },
+  {
+    id: 'cool-6',
+    url: 'https://api.dicebear.com/7.x/personas/svg?seed=Nova',
+    category: 'cool',
+    name: 'Avatar cool 6',
+  },
+  {
+    id: 'cool-7',
+    url: 'https://api.dicebear.com/7.x/personas/svg?seed=Zara',
+    category: 'cool',
+    name: 'Avatar cool 7',
+  },
 
   // Tech Category
   {
@@ -108,6 +156,18 @@ export const DEFAULT_AVATARS: PresetAvatar[] = [
     url: 'https://api.dicebear.com/7.x/bottts/svg?seed=Tech5',
     category: 'tech',
     name: 'Avatar tech 5',
+  },
+  {
+    id: 'tech-6',
+    url: 'https://api.dicebear.com/7.x/bottts/svg?seed=Robot6',
+    category: 'tech',
+    name: 'Avatar tech 6',
+  },
+  {
+    id: 'tech-7',
+    url: 'https://api.dicebear.com/7.x/bottts/svg?seed=Robot7',
+    category: 'tech',
+    name: 'Avatar tech 7',
   },
 
   // Abstract Category
@@ -141,52 +201,11 @@ export const DEFAULT_AVATARS: PresetAvatar[] = [
     category: 'abstract',
     name: 'Avatar abstrait 5',
   },
-
-  // Additional cute avatars
-  {
-    id: 'cute-6',
-    url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emma',
-    category: 'cute',
-    name: 'Avatar mignon 6',
-  },
-  {
-    id: 'cute-7',
-    url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jack',
-    category: 'cute',
-    name: 'Avatar mignon 7',
-  },
-
-  // Additional cool avatars
-  {
-    id: 'cool-6',
-    url: 'https://api.dicebear.com/7.x/personas/svg?seed=Nova',
-    category: 'cool',
-    name: 'Avatar cool 6',
-  },
-  {
-    id: 'cool-7',
-    url: 'https://api.dicebear.com/7.x/personas/svg?seed=Zara',
-    category: 'cool',
-    name: 'Avatar cool 7',
-  },
-
-  // Additional tech avatars
-  {
-    id: 'tech-6',
-    url: 'https://api.dicebear.com/7.x/bottts/svg?seed=Robot6',
-    category: 'tech',
-    name: 'Avatar tech 6',
-  },
-  {
-    id: 'tech-7',
-    url: 'https://api.dicebear.com/7.x/bottts/svg?seed=Robot7',
-    category: 'tech',
-    name: 'Avatar tech 7',
-  },
 ]
 
 export const AVATAR_CATEGORIES = [
   { id: 'all', name: 'Tous', count: DEFAULT_AVATARS.length },
+  { id: 'members', name: 'Membres', count: DEFAULT_AVATARS.filter(a => a.category === 'members').length },
   { id: 'cute', name: 'Mignon', count: DEFAULT_AVATARS.filter(a => a.category === 'cute').length },
   { id: 'cool', name: 'Cool', count: DEFAULT_AVATARS.filter(a => a.category === 'cool').length },
   { id: 'tech', name: 'Tech', count: DEFAULT_AVATARS.filter(a => a.category === 'tech').length },

@@ -8,8 +8,10 @@ import PlusIcon from "../icons/plus";
 import ChatPreview from "./chat-preview";
 import ChatConversation from "./chat-conversation";
 import { useWebSocket } from "@/lib/websocket-context";
+import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import { ChatHeader } from "./chat-header";
+import type { ChatMessage } from "@/types/chat";
 
 const CONTENT_HEIGHT = 420; // Height of expandable content
 
@@ -19,6 +21,10 @@ export default function Chat() {
     conversations,
     newMessage,
     setNewMessage,
+    setCurrentUserId,
+    updateConversationMessages,
+    addMessage,
+    updateMessageStatus,
     activeConversation,
     handleSendMessage,
     openConversation,
@@ -26,10 +32,71 @@ export default function Chat() {
     toggleExpanded,
   } = useChatState();
 
-  const { sendMessage, join, leave, markAsRead } = useWebSocket();
+  const { sendMessage, join, leave, markAsRead, conversationHistories, messages: wsMessages } = useWebSocket();
+  const { user } = useAuth();
   const { toast } = useToast();
 
   const isExpanded = chatState.state !== "collapsed";
+  const processedMessageIds = useRef<Set<string>>(new Set());
+
+  // Set current user ID
+  useEffect(() => {
+    if (user?.id) {
+      setCurrentUserId(user.id);
+    }
+  }, [user?.id, setCurrentUserId]);
+
+  // Load conversation history when it arrives from WebSocket (only once per conversation)
+  const loadedHistories = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (activeConversation && conversationHistories[activeConversation.id]) {
+      // Only load history once per conversation
+      if (loadedHistories.current.has(activeConversation.id)) {
+        return;
+      }
+      
+      const history = conversationHistories[activeConversation.id];
+      const chatMessages: ChatMessage[] = history.map((msg) => ({
+        id: msg.id,
+        content: msg.content,
+        timestamp: msg.timestamp,
+        senderId: msg.senderId,
+        isFromCurrentUser: msg.senderId === user?.id,
+        status: msg.status,
+      }));
+      
+      updateConversationMessages(activeConversation.id, chatMessages);
+      loadedHistories.current.add(activeConversation.id);
+      
+      // Mark these messages as processed to avoid duplicates
+      history.forEach(msg => processedMessageIds.current.add(msg.id));
+    }
+  }, [conversationHistories, activeConversation?.id, user?.id, updateConversationMessages]);
+
+  // Handle incoming WebSocket messages (only new ones)
+  useEffect(() => {
+    wsMessages.forEach((wsMsg) => {
+      // Skip if we've already processed this message
+      if (processedMessageIds.current.has(wsMsg.id)) {
+        return;
+      }
+      
+      const chatMsg: ChatMessage = {
+        id: wsMsg.id,
+        content: wsMsg.content,
+        timestamp: wsMsg.timestamp,
+        senderId: wsMsg.senderId,
+        isFromCurrentUser: wsMsg.senderId === user?.id,
+        status: wsMsg.status,
+      };
+      
+      // Add message to the appropriate conversation
+      addMessage(wsMsg.conversationId, chatMsg);
+      
+      // Mark as processed
+      processedMessageIds.current.add(wsMsg.id);
+    });
+  }, [wsMessages, user?.id, addMessage]);
 
   // Join/Leave conversation rooms
   const prevConvId = useRef<string | null>(null);
@@ -125,12 +192,27 @@ export default function Chat() {
                   const result = handleSendMessage();
                   if (!result) return;
                   const { message, conversationId } = result;
-                  try {
-                    sendMessage(conversationId, message);
+                  
+                  // Find the recipient in the conversation
+                  const recipient = activeConversation.participants.find(
+                    (p) => p.id !== user?.id
+                  );
+                  
+                  if (!recipient) {
                     toast({
-                      title: "Message envoyé",
-                      description: "Votre message a été transmis.",
+                      variant: "destructive",
+                      title: "Erreur",
+                      description: "Destinataire non trouvé.",
                     });
+                    return;
+                  }
+
+                  try {
+                    sendMessage(recipient.id, message.content, conversationId);
+                    // Update message status to 'sent' after sending
+                    setTimeout(() => {
+                      updateMessageStatus(message.id, "sent");
+                    }, 300);
                   } catch (e) {
                     toast({
                       variant: "destructive",
